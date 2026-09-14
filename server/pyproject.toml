@@ -4,10 +4,12 @@ version = "0.1.0"
 description = ""
 authors = [
     {name = "Eemil Sinkko",email = "eemil.sinkko@helsinki.fi"},
+    {name = "Juhani Kataja",email = "juhani.kataja@helsinki.fi"},
 ]
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
+    "paho-mqtt (>=2.1.0,<3.0.0)"
 ]
 
 [tool.poetry]
