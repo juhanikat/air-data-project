@@ -1,7 +1,7 @@
 # air-data-project
 Data Science course project.
 
-## Monorepository structure
+### Monorepository structure
 - Backend: [/server](./server/)
 - Frontend: [/web](./web/)
 
