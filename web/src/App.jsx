@@ -6,6 +6,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Brush,
   ResponsiveContainer,
 } from 'recharts'
 import dataService from './services/air-data'
@@ -22,6 +23,7 @@ const App = () => {
 
   useEffect(() => {
     dataService.getData().then((data) =>
+      // Add a formatted time property to each data point for display on the x-axis
       setData(
         data.map((item) => ({
           ...item,
@@ -31,16 +33,35 @@ const App = () => {
     )
   }, [])
 
-  console.log(data)
+  // Calculate how many data points there are in a week
+  const pointsPerWeek =
+    data.length > 1
+      ? Math.ceil(
+          (7 * 24 * 60 * 60) / Math.abs(data[0].timestamp - data[1].timestamp),
+        )
+      : 1
+
+  if (data.length > 1) {
+    console.log('data0/1:', data[0].timestamp - data[1].timestamp)
+    console.log('pointsPerWeek:', pointsPerWeek)
+  }
+
+  // Set the end and start indices for the brush component. User will see the last week by default.
+  const defaultEndIndex = data.length > 1 ? data.length - 1 : 0
+  const defaultStartIndex =
+    data.length > 1 ? Math.max(0, data.length - pointsPerWeek) : 0
+
+  console.log('defaultStartIndex:', defaultStartIndex)
+  console.log('defaultEndIndex:', defaultEndIndex)
 
   return (
     <div>
-      <h1>Ebin Air Data Broject</h1>
+      <h1>Ebin Air Data Roject</h1>
 
       <ResponsiveContainer width="100%" height={500}>
         <LineChart
           data={data}
-          margin={{ top: 5, right: 20, left: 10, bottom: 100 }}
+          margin={{ top: 5, right: 20, left: 10, bottom: 120 }}
         >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
@@ -51,6 +72,14 @@ const App = () => {
           />
           <YAxis />
           <Tooltip />
+          {/* Place the range selector brush below the rotated time labels. */}
+          <Brush
+            dataKey="time"
+            height={40}
+            y={430}
+            startIndex={defaultStartIndex}
+            endIndex={defaultEndIndex}
+          />
           <Line
             type="monotone"
             dataKey="temperature"

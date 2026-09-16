@@ -1,6 +1,6 @@
 # Frontend
 
-React + Vite fronend. Uses JSON server for develpment. Mock temperature data is in `db.json` spanning a week with 15 minute intervals.
+React + Vite fronend. Uses JSON server for development. Mock temperature data is in `db.json` spanning 28 days with 15 minute intervals.
 
 ## Installation
 
