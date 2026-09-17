@@ -11,13 +11,12 @@ class MQTTClient:
     port: int
     listening: bool
     _listeners: dict[str, List[Callable]]
-
     def __init__(self):
-        self._topics: set[str] = set()
         self._lock = Lock()
         self.client = mqtt.Client(CallbackAPIVersion.VERSION2)
         self.client.on_connect = self._on_connect
         self.client.on_message = self._on_mqtt_message
+        self.client.on_disconnect = self._on_disconnect
         self._listeners = dict()
         self.listening = False
         self.connected = False
@@ -34,6 +33,10 @@ class MQTTClient:
         if reason_code == "Success":
             print(f"Connected to MQTT broker ({reason_code})")
             self.connected = True
+            
+            # Apparently it's good to always subscribe when connected
+            for key in self._listeners.keys():
+                self.client.subscribe(key)
         else:
             print("ERROR: Failed to connect to MQTT server:", reason_code)
 
@@ -57,23 +60,25 @@ class MQTTClient:
         with self._lock:
             try:
                 payload = loads(msg.payload)
-                for topic_prefix in self._listeners.keys():
-                    if topic_prefix.startswith(msg.topic):
-                        for handler in self._listeners[topic_prefix]:
+                for topic in self._listeners.keys():
+                    if mqtt.topic_matches_sub(topic, msg.topic):
+                        for handler in self._listeners[topic]:
                             try:
                                 handler(msg.topic, payload)
                             except Exception as e:
-                                print(f"Error in on_message for '{topic_prefix}' at {handler}", *format_exception(e))
+                                print(f"Error in on_message for '{topic}' at {handler}", *format_exception(e))
             except Exception as e:
                 print("Error in MQTT message handler", *format_exception(e))
 
 
-    def on_message(self, topic_prefix: str) -> Callable:
+    def on_message(self, topic: str) -> Callable:
         def decorator(handler: Callable[[str, dict], None]):
-            self.client.subscribe(topic_prefix)
-            if topic_prefix not in self._listeners:
-                self._listeners[topic_prefix] = list()
-            self._listeners[topic_prefix].append(handler)
+            if self.connected:
+                self.client.subscribe(topic)
+            if topic not in self._listeners:
+                self._listeners[topic] = list()
+            self._listeners[topic].append(handler)
+            return handler
             
         return decorator
 
@@ -95,6 +100,7 @@ class MQTTClient:
 
         self.address = address
         self.port = port
+        self.listening = True
         if username and password:
             self.client.username_pw_set(
                 username=username,

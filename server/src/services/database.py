@@ -1,13 +1,17 @@
-from typing import List
+from typing import List, Optional, Tuple
 from time import time
+from contextlib import contextmanager
+from collections.abc import Generator
 from util.db_utils import DatabaseConnection, SensorItem, MeasurementItemFull, MeasurementItemSingular
 
 class DatabaseService():
     _connection: DatabaseConnection
+    is_open: bool
     file: str
 
     def __init__(self):
         self._db = DatabaseConnection()
+        self.is_open = False
 
 
     def set_file(self, file: str):
@@ -17,15 +21,35 @@ class DatabaseService():
 
     def open(self):
         self._db.open()
+        self.is_open = True
+
+
+    def enable_wal(self):
+        self._db.enable_wal()
 
 
     def close(self):
+        self.is_open = False
         self._db.close()
+
+
+    # Get a connection for other thread
+    @contextmanager
+    def from_thread(self) -> Generator["DatabaseService"]:
+        if not self.is_open:
+            raise RuntimeError("Cannot open other thread database connection if initial connection not open!")
+        new_service = DatabaseService()
+        new_service.set_file(self.file)
+        new_service.open()
+        try:
+            yield new_service
+        finally:
+            new_service.close()
 
 
     # MARK: Create sensor
     def create_sensor(self, name: str, mac: str) -> SensorItem:
-        self._db.execute("INSERT INTO Sensors VALUES (name, mac, location) VALUES (?, ?, ?)", (
+        self._db.execute("INSERT INTO Sensors (name, mac, location) VALUES (?, ?, ?);", (
             name, mac, "unset"
         ))
         new_sensor = self.get_sensor_with_mac(mac)
@@ -34,17 +58,40 @@ class DatabaseService():
         return new_sensor
 
 
+    def set_sensor_battery_voltage(self, sensor_id: int, voltage: float):
+        sensor = self.get_sensor(sensor_id)
+        if not sensor:
+            print(f"ERROR: Cannot record battery voltage for unknown sensor ({sensor_id})")
+            return
+
+        self._db.execute("UPDATE Sensors SET battery_voltage = ? WHERE id = ?;", (voltage, sensor_id))
+
+
     # MARK: Get sensors
     def get_sensors(self) -> List[SensorItem]:
-        rows = self._db.query("SELECT id, name, mac, location FROM Sensors", ())
+        rows = self._db.query("SELECT id, name, mac, location FROM Sensors", (), limit=None)
         return list(map(lambda row: SensorItem(*row), rows))
 
 
-    def get_sensor_with_mac(self, mac: str) -> SensorItem | None:
-        rows = self._db.query("SELECT id, name, mac, location FROM Sensors WHERE mac = ? LIMIT 1", (mac,))
+    def get_sensor(self, id: int) -> SensorItem | None:
+        rows = self._db.query("SELECT id, name, mac, location FROM Sensors WHERE id = ?", (id,), limit=1)
         if len(rows) > 0:
-            return SensorItem(*rows)
+            return SensorItem(*rows[0])
         return None
+
+
+    def get_sensor_with_mac(self, mac: str) -> SensorItem | None:
+        rows = self._db.query("SELECT id, name, mac, location FROM Sensors WHERE mac = ?", (mac,), limit=1)
+        if len(rows) > 0:
+            return SensorItem(*rows[0])
+        return None
+
+
+    # MARK: Events
+    def log_gateway_state(self, state: str):
+        self._db.execute("INSERT INTO GatewayEvents (timestamp, state) VALUES (?, ?);", (
+            time(), state
+        ))
 
 
     # MARK: Get latest
@@ -61,13 +108,15 @@ class DatabaseService():
             "PM100",
             "CO2",
             "VOC",
-            "NOx"
+            "NOx",
+            "during_calibration"
         ]
         latest = []
         for sensor in sensors:
             rows = self._db.query(
-                f"SELECT {", ".join(keys)} FROM Measurements WHERE sensor_id = ?",
-                parameters=(sensor.id,)
+                f"SELECT {", ".join(keys)} FROM Measurements WHERE sensor_id = ? ORDER BY measurement_timestamp DESC",
+                parameters=(sensor.id,),
+                limit=1
             )
             if len(rows) > 0:
                 latest.append(MeasurementItemFull(sensor, *rows[0]))
@@ -75,27 +124,61 @@ class DatabaseService():
         return latest
 
 
+    # MARK: Get historical
+    def get_historical(self, sensor_id: int, start: Optional[int], end: Optional[int]) -> Tuple[SensorItem | None, List[MeasurementItemSingular]]:
+        sensor = self.get_sensor(sensor_id)
+        if not sensor:
+            return (None, [])
+        keys = [
+            "measurement_timestamp",
+            "temperature",
+            "humidity",
+            "pressure",
+            "PM10",
+            "PM25",
+            "PM40",
+            "PM100",
+            "CO2",
+            "VOC",
+            "NOx",
+            "during_calibration"
+        ]
+        rows = self._db.query(
+            " ".join([
+                f"SELECT {", ".join(keys)} FROM Measurements",
+                f"WHERE sensor_id = :id",
+                "AND measurement_timestamp > :start" if start is not None else "",
+                "AND measurement_timestamp < :end" if end is not None else "",
+                "ORDER BY measurement_timestamp"
+            ]),
+            parameters={
+                "id": sensor_id,
+                "start": start,
+                "end": end
+            }
+        )
+
+        return (sensor, list(map(lambda row: MeasurementItemSingular(*row), rows)))
+
+
     # MARK: Insert measurement
     def insert_measurement(
         self,
         sensor_id: int,
-        measurement_timestamp: int,
-        rssi: int,
-        ble_phy: int,
-        ble_chan: int,
-        ble_tx_power: int,
-        mnum: int,
-        during_calibration: bool,
-        temperature: float,
-        humidity: float,
-        pressure: int,
-        PM10: float,
-        PM25: float,
-        PM40: float,
-        PM100: float,
-        CO2: int,
-        VOC: int,
-        NOx: int
+        measurement_timestamp: int | None,
+        rssi: int | None,
+        mnum: int | None,
+        during_calibration: bool | None,
+        temperature: float | None,
+        humidity: float | None,
+        pressure: int | None,
+        PM10: float | None,
+        PM25: float | None,
+        PM40: float | None,
+        PM100: float | None,
+        CO2: int | None,
+        VOC: int | None,
+        NOx: int | None
     ):
         self._db.execute(
             query="INSERT INTO Measurements (" +
@@ -103,9 +186,6 @@ class DatabaseService():
                     "measurement_timestamp," +
                     "insert_timestamp," +
                     "rssi," +
-                    "ble_phy," +
-                    "ble_chan," +
-                    "ble_tx_power," +
                     "mnum," +
                     "during_calibration," +
                     "temperature," +
@@ -118,15 +198,12 @@ class DatabaseService():
                     "CO2," +
                     "VOC," +
                     "NOx" +
-                  ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+                  ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
             parameters=(
                 sensor_id,
                 measurement_timestamp,
                 time(),
                 rssi,
-                ble_phy,
-                ble_chan,
-                ble_tx_power,
                 mnum,
                 during_calibration,
                 temperature,

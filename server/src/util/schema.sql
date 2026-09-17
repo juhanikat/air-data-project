@@ -3,7 +3,8 @@ CREATE TABLE Sensors (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     mac TEXT NOT NULL,
-    location TEXT
+    location TEXT,
+    battery_voltage FLOAT
 );
 
 -- Sensor measurements
@@ -14,9 +15,6 @@ CREATE TABLE Measurements (
     insert_timestamp INTEGER NOT NULL,
     -- Transmission metadata
     rssi INTEGER,
-    ble_phy INTEGER,
-    ble_chan INTEGER,
-    ble_tx_power INTEGER,
     mnum INTEGER,
     during_calibration BOOLEAN,
     -- Actual data
@@ -30,6 +28,13 @@ CREATE TABLE Measurements (
     CO2 INTEGER,
     VOC INTEGER,
     NOx INTEGER
+);
+
+-- Logs gateway events to detect disturbance
+CREATE TABLE GatewayEvents (
+    id INTEGER PRIMARY KEY,
+    timestamp INTEGER NOT NULL,
+    state BOOLEAN
 );
 
 -- User data

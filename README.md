@@ -25,6 +25,11 @@ docker run --rm -it \
 
 2. Start everything with `docker compose up`
 
+#### Service ports
+- `backend`: `9001`
+- `frontend`: `9000`
+- `mosquitto`: `9003`
+
 #### Updating service components
 In order to keep data collection services online at all times, rebuild specific services instead of all at once.
 

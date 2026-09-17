@@ -1,5 +1,6 @@
-from flask import Flask
+from flask import Flask, request
 from typing import Any, TYPE_CHECKING
+from json import dumps
 if TYPE_CHECKING:
     from util.context import Context
 
@@ -41,19 +42,50 @@ class APIService():
         # Get all latest measurements
         @self.app.route("/api/v1/latest")
         def latest():
-            return "TODO"
+            # TODO: Authentication
+            with context.database.from_thread() as database:
+                data = database.get_latest()
+            return dumps(list(map(lambda item: item.to_dict(), data)), indent=4), 200, {
+                "Content-Type": "application/json"
+            }
 
         # MARK: /query
         # Query historical data
-        @self.app.route("/api/v1/query")
+        @self.app.route("/api/v1/query", methods=["POST"])
         def query():
-            return "TODO"
+            try:
+                body = request.get_json()
+            except Exception:
+                return "Expected application/json", 400
+
+            if "start" not in body and "end" not in body:
+                return "Missing a required key 'start' or 'end'", 400
+            if ("start" in body and type(body["start"]) != int) or ("end" in body and type(body["end"]) != int):
+                return "Keys 'start' and 'end' bust be undefined or int", 400
+            if "id" not in body or type(body["id"]) != int:
+                return "Key 'id' (sensor id) required", 400
+            
+            with context.database.from_thread() as database:
+                start = body["start"] if "start" in body else None
+                end = body["end"] if "end" in body else None
+                sensor, items = database.get_historical(body["id"], start, end)
+                if sensor is None:
+                    return dumps({ "sensor": None, "results": [] }, indent=4), 200
+                return dumps({
+                    "sensor": sensor.to_dict(),
+                    "results": list(map(lambda item: item.to_dict(), items))
+                })
 
         # MARK: /list
         # Get list of sensors
-        @self.app.route("/api/v1/list")
-        def list():
-            return "TODO"
+        @self.app.route("/api/v1/sensors")
+        def list_data():
+            with context.database.from_thread() as database:
+                data = database.get_sensors()
+
+            return dumps(list(map(lambda item: item.to_dict(), data)), indent=4), 200, {
+                "Content-Type": "application/json"
+            }
 
 
     def listen(self, address: str = "127.0.0.1", port: int = 8000, development_mode: bool = False):

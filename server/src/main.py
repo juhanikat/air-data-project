@@ -26,6 +26,7 @@ def main():
         context.database.set_file(args.get("database") or "../data/main.db")
         print(f"Opening SQLite database from '{context.database.file}'")
         context.database.open()
+        context.database.enable_wal()
 
         # MARK: MQTT
         context.mqtt.register_listeners(context)
