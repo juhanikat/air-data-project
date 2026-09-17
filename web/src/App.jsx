@@ -11,11 +11,19 @@ import {
 } from 'recharts'
 import dataService from './services/air-data'
 
+/**
+ * Formats a Unix timestamp (seconds from 1970-01-01 00:00:00 UTC) as a local date-time string.
+ *
+ * @param {number} timestamp - Unix timestamp in seconds.
+ * @returns {string} Formatted as "YYYY-MM-DD HH-MM-SS" in local time.
+ */
 const formatTimestamp = (timestamp) => {
   const date = new Date(timestamp * 1000)
   const pad = (value) => String(value).padStart(2, '0')
-
-  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}-${pad(date.getUTCMinutes())}-${pad(date.getUTCSeconds())}`
+  // Use local time
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`
+  // Use UTC time
+  //return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}-${pad(date.getUTCMinutes())}-${pad(date.getUTCSeconds())}`
 }
 
 const App = () => {
@@ -42,8 +50,11 @@ const App = () => {
       : 1
 
   if (data.length > 1) {
-    console.log('data0/1:', data[0].timestamp - data[1].timestamp)
-    console.log('pointsPerWeek:', pointsPerWeek)
+    console.log(
+      'Seconds between first and second data points:',
+      data[1].timestamp - data[0].timestamp,
+    )
+    console.log('dataPointsPerWeek:', pointsPerWeek)
   }
 
   // Set the end and start indices for the brush component. User will see the last week by default.
@@ -92,7 +103,8 @@ const App = () => {
       <h2>Data</h2>
       {data.map((item) => (
         <div key={item.id}>
-          {item.time} | Temperature: {item.temperature}
+          {item.time} | Temp: {item.temperature.toFixed(2)} | Humidity:{' '}
+          {item.humidity}
         </div>
       ))}
     </div>
