@@ -3,20 +3,22 @@ from pathlib import Path
 from typing import Any, List, Optional, Tuple, Union
 from dataclasses import dataclass
 
+
 class DatabaseConnection:
-    def __init__(self, database = "./main.db", schema="./util/schema.sql", init="./util/init.sql"):
+    def __init__(self, database = "./main.db", schema="./schema.sql", init="./init.sql"):
         self.database_filepath = database
         self.schema_filepath = schema
         self.init_filepath = init
         self.connection = None
 
+
     def open(self):
         if self.connection:
             raise DatabaseException("Database already opened!")
-        schema_file = Path(self.schema_filepath)
+        schema_file = Path(__file__).parent / Path(self.schema_filepath)
         if not schema_file.exists():
             raise DatabaseException("Schema file not found.")
-        init_file = Path(self.init_filepath)
+        init_file = Path(__file__).parent / Path(self.init_filepath)
         if not init_file.exists():
             raise DatabaseException("Init file not found.")
 
@@ -35,10 +37,12 @@ class DatabaseConnection:
         self.connection.execute("PRAGMA foreign_keys = ON")
         return self
 
+
     def close(self):
         if not self.connection:
             raise DatabaseException("Database not open!")
         self.connection.close()
+
 
     def execute(self, query: str, parameters: Union[Tuple[Any, ...], dict]) -> Tuple[Connection, Cursor]:
         if not self.connection:
@@ -54,6 +58,7 @@ class DatabaseConnection:
                   query, "With params:", parameters)
             self.connection.rollback()
             raise DatabaseException("Halting due to error. See above logs.")
+
 
     def query(self, query: str, parameters: Optional[Union[Tuple[Any, ...], dict]], limit: int = -1) -> List[Any]:
         if not self.connection:
@@ -73,12 +78,14 @@ class DatabaseException(Exception):
     def __init__(self, message):
         super().__init__(message)
 
+
 @dataclass
 class SensorItem:
     id: int
     name: str
     mac: str
     location: str
+
 
 @dataclass
 class MeasurementItemFull:
@@ -110,4 +117,3 @@ class MeasurementItemSingular:
     voc: int
     nox: int
     during_calibration: bool
-

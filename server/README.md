@@ -13,9 +13,9 @@ This is the server part of the project. The server consists of:
 5. Start the server: `poetry run invoke start`
 
 ## Compiling
-At this time, only Linux is supported as the target platform.
+At this time, only Linux is supported as the target platform. This limitation stems from the WYSIWYG webserver choice (Gunicorn) for API production use. 
 
 1. Make sure steps outlined in [setup](#setup) have been completed
-2. Consider installing the `ccache` to optimize compile time
+2. Make sure you have `binutils` and `build-essential` installed. Consider installing the `ccache` to optimize compile time
 3. Run the Nuitka compiler: `poetry run invoke build`
 4. Find the output binary in `out/`

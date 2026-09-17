@@ -2,3 +2,4 @@ src/main.db
 __pycache__
 out/main.*
 out/air-data-server.*
+data/*.db

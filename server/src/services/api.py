@@ -1,5 +1,7 @@
 from flask import Flask
-from util.context import Context
+from typing import Any, TYPE_CHECKING
+if TYPE_CHECKING:
+    from util.context import Context
 
 def conditionally_declare_GunicornApplication():
     from gunicorn.app.base import BaseApplication
@@ -9,6 +11,7 @@ def conditionally_declare_GunicornApplication():
             self.options = options or {}
             super().__init__()
 
+
         def load_config(self):
             for key, value in self.options.items():
                 if key in self.cfg.settings and value is not None:
@@ -17,12 +20,15 @@ def conditionally_declare_GunicornApplication():
         def load(self):
             return self.application
 
+
     return GunicornApplication
 
 
 # MARK: Service class
 class APIService():
     address: str
+    gunicorn: Any
+    app: Flask
     port: int
     listening: bool = False
 
@@ -30,7 +36,7 @@ class APIService():
         self.app = Flask(__name__)
 
 
-    def register_routes(self, context: Context):
+    def register_routes(self, context: "Context"):
         # MARK: /latest
         # Get all latest measurements
         @self.app.route("/api/v1/latest")

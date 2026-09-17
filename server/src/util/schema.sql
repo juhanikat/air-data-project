@@ -30,7 +30,7 @@ CREATE TABLE Measurements (
     CO2 INTEGER,
     VOC INTEGER,
     NOx INTEGER
-)
+);
 
 -- User data
 CREATE TABLE Users (

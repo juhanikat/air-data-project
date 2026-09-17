@@ -1,0 +1,41 @@
+services:
+  backend:
+    restart: unless-stopped
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    depends_on:
+      - mosquitto
+    ports:
+      - "9001:9001"
+    networks:
+      - backend-network
+    volumes:
+      - ./server/data:/app/data
+    environment:
+      BACKEND_MQTT_USER: ${BACKEND_MQTT_USER}
+      BACKEND_MQTT_PASSWORD: ${BACKEND_MQTT_PASSWORD}
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "9003:9003"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    networks:
+      - backend-network
+
+  frontend:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "9000:80"
+
+networks:
+  backend-network:
+    driver: bridge

@@ -19,6 +19,10 @@ class DatabaseService():
         self._db.open()
 
 
+    def close(self):
+        self._db.close()
+
+
     # MARK: Create sensor
     def create_sensor(self, name: str, mac: str) -> SensorItem:
         self._db.execute("INSERT INTO Sensors VALUES (name, mac, location) VALUES (?, ?, ?)", (
@@ -41,6 +45,7 @@ class DatabaseService():
         if len(rows) > 0:
             return SensorItem(*rows)
         return None
+
 
     # MARK: Get latest
     def get_latest(self) -> List[MeasurementItemFull]:
@@ -71,25 +76,27 @@ class DatabaseService():
 
 
     # MARK: Insert measurement
-    def insert_measurement(self,
-                           sensor_id: int,
-                           measurement_timestamp: int,
-                           rssi: int,
-                           ble_phy: int,
-                           ble_chan: int,
-                           ble_tx_power: int,
-                           mnum: int,
-                           during_calibration: bool,
-                           temperature: float,
-                           humidity: float,
-                           pressure: int,
-                           PM10: float,
-                           PM25: float,
-                           PM40: float,
-                           PM100: float,
-                           CO2: int,
-                           VOC: int,
-                           NOx: int):
+    def insert_measurement(
+        self,
+        sensor_id: int,
+        measurement_timestamp: int,
+        rssi: int,
+        ble_phy: int,
+        ble_chan: int,
+        ble_tx_power: int,
+        mnum: int,
+        during_calibration: bool,
+        temperature: float,
+        humidity: float,
+        pressure: int,
+        PM10: float,
+        PM25: float,
+        PM40: float,
+        PM100: float,
+        CO2: int,
+        VOC: int,
+        NOx: int
+    ):
         self._db.execute(
             query="INSERT INTO Measurements (" +
                     "sensor_id," +
@@ -131,7 +138,7 @@ class DatabaseService():
                 PM100,
                 CO2,
                 VOC,
-                NOx,
+                NOx
             )
         )
 
