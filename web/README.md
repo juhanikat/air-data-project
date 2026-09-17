@@ -22,6 +22,9 @@ and the JSON server with
 npm run server
 ```
 
+## Deployment
+Docker with `nginx` is used in production. See [Dockerfile](./Dockerfile).
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
