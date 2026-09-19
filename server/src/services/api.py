@@ -76,6 +76,18 @@ class APIService():
                     "results": list(map(lambda item: item.to_dict(), items))
                 })
 
+        # MARK: /stats
+        # Get stats for stored measurements
+        @self.app.route("/api/v1/stats")
+        def stats():
+            with context.database.from_thread() as database:
+                data = database.get_measurement_statistics()
+                
+            return dumps(data.to_dict(), indent=4), 200, {
+                "Content-Type": "application/json"
+            }
+        
+
         # MARK: /list
         # Get list of sensors
         @self.app.route("/api/v1/sensors")

@@ -2,7 +2,7 @@ from typing import List, Optional, Tuple
 from time import time
 from contextlib import contextmanager
 from collections.abc import Generator
-from util.db_utils import DatabaseConnection, SensorItem, MeasurementItemFull, MeasurementItemSingular
+from util.db_utils import DatabaseConnection, SensorItem, MeasurementItemFull, MeasurementItemSingular, MeasurementStatistic
 
 class DatabaseService():
     _connection: DatabaseConnection
@@ -58,6 +58,7 @@ class DatabaseService():
         return new_sensor
 
 
+    # MARK: Set sensor voltage
     def set_sensor_battery_voltage(self, sensor_id: int, voltage: float):
         sensor = self.get_sensor(sensor_id)
         if not sensor:
@@ -85,6 +86,21 @@ class DatabaseService():
         if len(rows) > 0:
             return SensorItem(*rows[0])
         return None
+
+
+    # MARK: Get measurement stats
+    def get_measurement_statistics(self) -> MeasurementStatistic:
+        sensors = self.get_sensors()
+        count_per_sensor = dict()
+        id_to_mac = dict()
+        for sensor in sensors:
+            rows = self._db.query("SELECT COUNT(*) FROM Measurements WHERE sensor_id  = ?", (sensor.id,), limit=1)
+            count_per_sensor[sensor.id] = rows[0][0] if len(rows) > 0 else -1
+            id_to_mac[sensor.id] = sensor.mac
+
+        return MeasurementStatistic(id_to_mac,
+                                    len(sensors),
+                                    count_per_sensor)
 
 
     # MARK: Events

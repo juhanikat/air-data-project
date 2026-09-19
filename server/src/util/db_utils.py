@@ -1,6 +1,6 @@
 from sqlite3 import Error, connect, Connection, Cursor
 from pathlib import Path
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union, Dict
 from dataclasses import dataclass
 
 class DatabaseConnection:
@@ -102,6 +102,20 @@ class SensorItem:
             "name": self.name,
             "mac": self.mac,
             "location": self.location
+        }
+
+
+@dataclass
+class MeasurementStatistic:
+    sensors: Dict[int, str]
+    sensors_count: int
+    entries_per_sensor: Dict[int, int]
+
+    def to_dict(self):
+        return {
+            "sensors": self.sensors,
+            "sensors_count": self.sensors_count,
+            "entries_per_sensor": self.entries_per_sensor
         }
 
 
