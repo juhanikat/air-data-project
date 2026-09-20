@@ -2,7 +2,7 @@ from typing import List, Optional, Tuple
 from time import time
 from contextlib import contextmanager
 from collections.abc import Generator
-from util.db_utils import DatabaseConnection, SensorItem, MeasurementItemFull, MeasurementItemSingular, MeasurementStatistic
+from util.db_utils import DatabaseConnection, SensorItem, MeasurementItemFull, MeasurementItemSingular, MeasurementStatistic, GatewayEvent
 
 class DatabaseService():
     _connection: DatabaseConnection
@@ -94,12 +94,11 @@ class DatabaseService():
         count_per_sensor = dict()
         id_to_mac = dict()
         for sensor in sensors:
-            rows = self._db.query("SELECT COUNT(*) FROM Measurements WHERE sensor_id  = ?", (sensor.id,), limit=1)
+            rows = self._db.query("SELECT COUNT(*) FROM Measurements WHERE sensor_id = ?", (sensor.id,), limit=1)
             count_per_sensor[sensor.id] = rows[0][0] if len(rows) > 0 else -1
             id_to_mac[sensor.id] = sensor.mac
 
         return MeasurementStatistic(id_to_mac,
-                                    len(sensors),
                                     count_per_sensor)
 
 
@@ -108,6 +107,11 @@ class DatabaseService():
         self._db.execute("INSERT INTO GatewayEvents (timestamp, state) VALUES (?, ?);", (
             time(), state
         ))
+
+
+    def get_gateway_events(self) -> List[GatewayEvent]:
+        rows = self._db.query("SELECT state, timestamp FROM GatewayEvents ORDER BY timestamp DESC", (), limit=None)
+        return list(map(lambda row: GatewayEvent(*row), rows))
 
 
     # MARK: Get latest

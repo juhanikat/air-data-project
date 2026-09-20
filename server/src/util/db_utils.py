@@ -108,14 +108,24 @@ class SensorItem:
 @dataclass
 class MeasurementStatistic:
     sensors: Dict[int, str]
-    sensors_count: int
     entries_per_sensor: Dict[int, int]
 
     def to_dict(self):
         return {
             "sensors": self.sensors,
-            "sensors_count": self.sensors_count,
             "entries_per_sensor": self.entries_per_sensor
+        }
+
+
+@dataclass
+class GatewayEvent:
+    state: str
+    timestamp: int
+
+    def to_dict(self):
+        return {
+            "state": self.state,
+            "timestamp": self.timestamp
         }
 
 

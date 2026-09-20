@@ -1,6 +1,7 @@
 from flask import Flask, request
 from typing import Any, TYPE_CHECKING
 from json import dumps
+from time import time
 if TYPE_CHECKING:
     from util.context import Context
 
@@ -96,6 +97,19 @@ class APIService():
                 data = database.get_sensors()
 
             return dumps(list(map(lambda item: item.to_dict(), data)), indent=4), 200, {
+                "Content-Type": "application/json"
+            }
+
+        @self.app.route("/api/v1/gateway-events")
+        def list_events():
+            with context.database.from_thread() as database:
+                data = database.get_gateway_events()
+
+            result = {
+                "last_event_delta": int(time()) - (data[0].timestamp if len(data) > 0 else -int(time())),
+                "events": list(map(lambda item: item.to_dict(), data))
+            }
+            return dumps(result, indent=4), 200, {
                 "Content-Type": "application/json"
             }
 
