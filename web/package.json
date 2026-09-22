@@ -11,6 +11,8 @@
     "server": "json-server -p 3001 db.json"
   },
   "dependencies": {
+    "@chakra-ui/react": "^3.37.0",
+    "@emotion/react": "^11.14.0",
     "axios": "^1.20.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -26,6 +28,7 @@
     "eslint-plugin-react-refresh": "^0.5.4",
     "globals": "^17.11.0",
     "json-server": "^1.0.0-beta.15",
+    "typescript": "^7.0.2",
     "vite": "^8.2.2"
   }
 }
