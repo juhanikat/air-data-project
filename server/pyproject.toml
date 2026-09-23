@@ -5,6 +5,7 @@ description = ""
 authors = [
     {name = "Eemil Sinkko",email = "eemil.sinkko@helsinki.fi"},
     {name = "Juhani Kataja",email = "juhani.kataja@helsinki.fi"},
+    {name = "Jaakko Airikkala",email = "jaakko.airikkala@helsinki.fi"}
 ]
 readme = "README.md"
 requires-python = ">=3.10"

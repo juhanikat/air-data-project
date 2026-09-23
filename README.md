@@ -43,4 +43,4 @@ docker compose up -d --build --force-recreate frontend
 TBA
 
 ### License
-TBA
+See [LICENSE](./LICENSE)
