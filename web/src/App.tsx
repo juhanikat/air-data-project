@@ -21,6 +21,7 @@ const formatTimestamp = (timestamp) => {
 
 const App = () => {
   const [data, setData] = useState([])
+  const [data2, setData2] = useState([])
 
   useEffect(() => {
     dataService.getData().then((data) =>
@@ -34,6 +35,13 @@ const App = () => {
     )
   }, [])
 
+  // Test fetching data directly from icetea.esinko.net
+  // Not in use.
+  useEffect(() => {
+    dataService.getDataFromInternet().then((data2) => setData2(data2))
+  }, [])
+  //console.log('data from internet:', data2)
+
   // Calculate how many data points there are in a week
   const pointsPerWeek =
     data.length > 1
@@ -42,21 +50,10 @@ const App = () => {
         )
       : 1
 
-  if (data.length > 1) {
-    console.log(
-      'Seconds between first and second data points:',
-      data[1].timestamp - data[0].timestamp
-    )
-    console.log('dataPointsPerWeek:', pointsPerWeek)
-  }
-
   // Set the end and start indices for the brush component. User will see the last week by default.
   const defaultEndIndex = data.length > 1 ? data.length - 1 : 0
   const defaultStartIndex =
     data.length > 1 ? Math.max(0, data.length - pointsPerWeek) : 0
-
-  console.log('defaultStartIndex:', defaultStartIndex)
-  console.log('defaultEndIndex:', defaultEndIndex)
 
   return (
     <div>

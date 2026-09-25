@@ -1,64 +1,49 @@
 import { HStack } from '@chakra-ui/react'
-import {
-  Brush,
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
 import { SensorValueCard } from '../components/SensorValueCard'
+import Chart from '../components/Chart'
 
 const MainPage = ({ data, defaultStartIndex, defaultEndIndex }) => {
+  if (data.length === 0) {
+    return
+  }
+  const lastIndex = data.length - 1
+  const lastDataPoint = new Date(data[lastIndex]['timestamp'] * 1000)
+
   return (
     <div>
       <HStack gap="4px" align="start">
         <SensorValueCard
           type={'temperature'}
           label={'Test Temperature Card'}
-          value={30.2}
-          timestamp={new Date('2026-09-22')}
+          value={data[lastIndex]['temperature']}
+          timestamp={lastDataPoint}
         />
         <SensorValueCard
           type={'percentage'}
           label={'Test Humidity Card'}
-          value={55.5}
-          timestamp={new Date('2026-09-20')}
+          value={data[lastIndex]['humidity']}
+          timestamp={lastDataPoint}
         />
       </HStack>
 
-      <ResponsiveContainer width="100%" height={500}>
-        <LineChart
+      <h2>Temperature</h2>
+      <div>
+        <Chart
           data={data}
-          margin={{ top: 5, right: 20, left: 10, bottom: 120 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis
-            dataKey="time"
-            angle={-45}
-            textAnchor="end"
-            interval="preserveStart"
-          />
-          <YAxis />
-          <Tooltip />
-          {/* Place the range selector brush below the rotated time labels. */}
-          <Brush
-            dataKey="time"
-            height={40}
-            y={460}
-            startIndex={defaultStartIndex}
-            endIndex={defaultEndIndex}
-          />
-          <Line
-            type="monotone"
-            dataKey="temperature"
-            stroke="#8884d8"
-            dot={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+          dataKey={'temperature'}
+          defaultStartIndex={defaultStartIndex}
+          defaultEndIndex={defaultEndIndex}
+        />
+      </div>
+      <h2>Humidity</h2>
+      <div>
+        <Chart
+          data={data}
+          dataKey={'humidity'}
+          defaultStartIndex={defaultStartIndex}
+          defaultEndIndex={defaultEndIndex}
+        />
+      </div>
 
       <h2>Data</h2>
       {data.map((item) => (
