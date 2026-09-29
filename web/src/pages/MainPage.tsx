@@ -1,13 +1,24 @@
 import { HStack } from '@chakra-ui/react'
 import { SensorValueCard } from '../components/SensorValueCard'
 import Chart from '../components/Chart'
+import { SensorData } from '@/App'
 
-const MainPage = ({ data, defaultStartIndex, defaultEndIndex }) => {
-  if (data.length === 0) {
-    return
-  }
-  const lastIndex = data.length - 1
-  const lastDataPoint = new Date(data[lastIndex]['timestamp'] * 1000)
+const MainPage = ({
+  data,
+  defaultStartIndex,
+  defaultEndIndex,
+}: {
+  data: SensorData
+  defaultStartIndex: number
+  defaultEndIndex: number
+}) => {
+  const sensorReadings = data.results
+  if (sensorReadings.length === 0) return
+
+  const lastIndex = sensorReadings.length - 1
+  const lastDataPoint = new Date(
+    sensorReadings[sensorReadings.length - 1].timestamp * 1000
+  )
 
   return (
     <div>
@@ -15,13 +26,13 @@ const MainPage = ({ data, defaultStartIndex, defaultEndIndex }) => {
         <SensorValueCard
           type={'temperature'}
           label={'Test Temperature Card'}
-          value={data[lastIndex]['temperature']}
+          value={sensorReadings[lastIndex].temperature}
           timestamp={lastDataPoint}
         />
         <SensorValueCard
           type={'percentage'}
           label={'Test Humidity Card'}
-          value={data[lastIndex]['humidity']}
+          value={sensorReadings[lastIndex].humidity}
           timestamp={lastDataPoint}
         />
       </HStack>
@@ -29,7 +40,7 @@ const MainPage = ({ data, defaultStartIndex, defaultEndIndex }) => {
       <h2>Temperature</h2>
       <div>
         <Chart
-          data={data}
+          data={sensorReadings}
           dataKey={'temperature'}
           defaultStartIndex={defaultStartIndex}
           defaultEndIndex={defaultEndIndex}
@@ -38,20 +49,12 @@ const MainPage = ({ data, defaultStartIndex, defaultEndIndex }) => {
       <h2>Humidity</h2>
       <div>
         <Chart
-          data={data}
+          data={sensorReadings}
           dataKey={'humidity'}
           defaultStartIndex={defaultStartIndex}
           defaultEndIndex={defaultEndIndex}
         />
       </div>
-
-      <h2>Data</h2>
-      {data.map((item) => (
-        <div key={item.id}>
-          {item.time} | Temp: {item.temperature.toFixed(2)} | Humidity:{' '}
-          {item.humidity}
-        </div>
-      ))}
     </div>
   )
 }

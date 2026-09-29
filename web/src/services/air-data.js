@@ -20,6 +20,7 @@ const getDataFromInternet = async () => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ start: 1789809817, id: 1 }),
   })
+
   return response.json()
 }
 
