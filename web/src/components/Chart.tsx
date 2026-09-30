@@ -1,4 +1,5 @@
-import { SensorReading } from '@/App'
+
+import { SensorReading } from '@/services/api'
 import {
   Brush,
   CartesianGrid,

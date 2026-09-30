@@ -1,41 +1,16 @@
 import { useEffect, useState } from 'react'
-import dataService from './services/air-data'
+import api, { DownsampledSensorReading, SensorData } from './services/api'
 import SettingsPage from './pages/SettingsPage'
 import MainPage from './pages/MainPage'
 import { Tabs } from '@chakra-ui/react'
 
-export type SensorData = {
-  sensor: Sensor
-  results: SensorReading[]
-}
-
-export type Sensor = {
-  id: number
-  name: string
-  mac: string
-  location: string
-}
-
-export type SensorReading = {
-  timestamp: number
-  during_calibration: boolean | null
-  temperature: number | null
-  humidity: number | null
-  pressure: number | null
-  pm10: number | null
-  pm25: number | null
-  pm40: number | null
-  pm100: number | null
-  co2: number | null
-  voc: number | null
-  nox: number | null
-}
 /**
  * Formats a Unix timestamp (seconds from 1970-01-01 00:00:00 UTC) as a local date-time string.
  *
  * @param {number} timestamp - Unix timestamp in seconds.
  * @returns {string} Formatted as "YYYY-MM-DD HH-MM-SS" in local time.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const formatTimestamp = (timestamp: number) => {
   const date = new Date(timestamp * 1000)
   const pad = (value: number) => String(value).padStart(2, '0')
@@ -51,9 +26,19 @@ const App = () => {
   // Test fetching data directly from icetea.esinko.net
   // Not in use.
   useEffect(() => {
-    dataService
-      .getDataFromInternet()
-      .then((data: SensorData) => setSensorData(data))
+    api
+      .query(2, {
+        downsample: true,
+        sample_method: "mean",
+        sample_interval: 360, // one sample every 10 seconds, 360 * 10 = 1 hour
+        start: 0 // All data!
+      })
+      .then((data) => {
+        // Format data to be just the values without "mean" key
+        data.results = api.toSensorReadings(data.results as DownsampledSensorReading[], "mean")
+
+        setSensorData(data)
+      })
   }, [])
   console.log('data from internet:', sensorData)
 

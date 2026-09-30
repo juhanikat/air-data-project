@@ -2,6 +2,8 @@ from flask import Flask, request
 from typing import Any, TYPE_CHECKING
 from json import dumps
 from time import time
+from flask_cors import CORS
+from util.science import downSampleMeasurementsTo
 if TYPE_CHECKING:
     from util.context import Context
 
@@ -65,17 +67,30 @@ class APIService():
                 return "Keys 'start' and 'end' bust be undefined or int", 400
             if "id" not in body or type(body["id"]) != int:
                 return "Key 'id' (sensor id) required", 400
-            
+            if "downsample" in body and type(body["downsample"] != bool):
+                return "Key 'downsample' must be undefined or bool", 400
+            if body["downsample"] and ("sampling_method" not in body or (type(body["sampling_method"] != str) and type(body["sampling_method"] != list))):
+                return "Key 'sampling_method' must be str or list", 400
+            if body["downsample"] and ("sample_interval" not in body or type(body["sample_interval"]) != int):
+                return "Key 'sample_interval' must be int", 400
+
+            # Database fetch
             with context.database.from_thread() as database:
                 start = body["start"] if "start" in body else None
                 end = body["end"] if "end" in body else None
                 sensor, items = database.get_historical(body["id"], start, end)
                 if sensor is None:
                     return dumps({ "sensor": None, "results": [] }, indent=4), 200
-                return dumps({
-                    "sensor": sensor.to_dict(),
-                    "results": list(map(lambda item: item.to_dict(), items))
-                })
+
+            # Downsampling
+            if body["downsample"]:
+                items = downSampleMeasurementsTo(items, body["sampling_method"], body["sampling_interval"])
+
+            return dumps({
+                "sensor": sensor.to_dict(),
+                "downsampled": body["downsample"] == True,
+                "results": list(map(lambda item: item.to_dict(), items))
+            })
 
         # MARK: /stats
         # Get stats for stored measurements
@@ -121,6 +136,11 @@ class APIService():
         self.listening = True
         self.address = address
         self.port = port
+
+        CORS(self.app, origins=[
+            "http://icetea.esinko.net:9000",
+            "http://localhost:9000"
+        ])
 
         if not development_mode:
             # NOTE: We need to this trick to make development mode work on Windows
