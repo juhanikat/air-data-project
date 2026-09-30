@@ -46,20 +46,7 @@ const formatTimestamp = (timestamp: number) => {
 }
 
 const App = () => {
-  const [data, setData] = useState<any[]>([])
   const [sensorData, setSensorData] = useState<SensorData>()
-
-  useEffect(() => {
-    dataService.getData().then((data: any[]) =>
-      // Add a formatted time property to each data point for display on the x-axis
-      setData(
-        data.map((item) => ({
-          ...item,
-          time: formatTimestamp(item.timestamp),
-        }))
-      )
-    )
-  }, [])
 
   // Test fetching data directly from icetea.esinko.net
   // Not in use.
@@ -79,7 +66,8 @@ const App = () => {
   const pointsPerWeek =
     sensorReadings.length > 1
       ? Math.ceil(
-          (7 * 24 * 60 * 60) / Math.abs(data[0].timestamp - data[1].timestamp)
+          (7 * 24 * 60 * 60) /
+            Math.abs(sensorReadings[0].timestamp - sensorReadings[1].timestamp)
         )
       : 1
 

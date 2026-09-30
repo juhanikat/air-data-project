@@ -1,12 +1,3 @@
-import axios from 'axios'
-
-const baseUrl = 'http://localhost:3001'
-
-const getData = async () => {
-  const response = await axios.get(`${baseUrl}/airData`)
-  return response.data
-}
-
 const getDataFromInternet = async () => {
   // Test fetching data from the internet.
 
@@ -24,4 +15,4 @@ const getDataFromInternet = async () => {
   return response.json()
 }
 
-export default { getData, getDataFromInternet }
+export default { getDataFromInternet }
