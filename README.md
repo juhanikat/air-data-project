@@ -13,7 +13,8 @@ Each directory contains a single service.
 - `frontend`: `9000`
 - `mosquitto`: `9003`
 
-## Setup a development environment
+## How to setup a development environment
+Each service has their own setup instructions below.
 
 > [!IMPORTANT]  
 > **Important Prerequisites/Things to remember**
@@ -37,7 +38,7 @@ docker compose up frontend
 > [!IMPORTANT]  
 > A functional development deployment requires a functioning Broker service. Complete [Local MQTT broker setup](#local-mqtt-broker-setup) instructions first.
 
-The Backend uses Poetry for project management. Follow instructions in [`/server/README.md#setup-development-environment"](./server/README.md#setup-development-environment) for setup.
+The Backend uses Poetry for project management. Follow instructions in [/server/README.md#setup-development-environment](./server/README.md#setup-development-environment) for setup.
 
 ### Local MQTT Broker setup
 This project uses Mosquitto for MQTT brokering in development and production.
@@ -55,7 +56,7 @@ docker compose build mosquitto
 Mosquitto needs to provide access to the sensors and the backend server. This repository has default credentials configured in [`/mosquitto/config/password`](./mosquitto/config/passwords). You will need to create your own.
 
 To add your own credentials:
-1. Delete the `passwords` ([`/mosquitto/config/password](./mosquitto/config/passwords)) file.
+1. Delete the `passwords` ([`/mosquitto/config/password`](./mosquitto/config/passwords)) file.
 2. Create the `backend` and `sensors` users with the following commands. You will be prompted for the password twice for each user:
     - Create `backend` user: `docker run --rm -it -v ./mosquitto/config:/mosquitto/config eclipse-mosquitto:2 mosquitto_passwd -c /mosquitto/config/passwords backend`
     - Create `sensors` user: `docker run --rm -it -v ./mosquitto/config:/mosquitto/config eclipse-mosquitto:2 mosquitto_passwd /mosquitto/config/passwords sensors`
@@ -76,7 +77,7 @@ docker compose down
 ```
 
 ## Deploying to production
-This project used Docker Compose for deployment. Each core component (backend, frontend and broker) can be deployed at once with:
+Each service (backend, frontend and broker) can be deployed at once in their production configuration with:
 
 ```bash
 docker compose up
@@ -84,10 +85,10 @@ docker compose up
 
 Beware that building will take a few minutes depending on your system.
 
-## Updating deployments
+### Updating deployments
 In order to keep data collection services online at all times, rebuild specific services instead of all at once.
 
-For example, in order to update the `frontend` deployment, run:
+For example, in order to update the `frontend` deployment in production, run:
 
 ```bash
 docker compose up -d --build --force-recreate frontend

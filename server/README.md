@@ -27,12 +27,12 @@ Python `3.10` or newer is required.
 
 > [!TIP]
 > If you get a bunch of "ConnectionRefused" errors, make sure the Broker component is running and properly configured.
-> See the [README.md](../README.md) for more instructions regarding broker setup.
+> See [../README.md#local-mqtt-broker-setup](../README.md#local-mqtt-broker-setup) for more instructions regarding broker setup.
 
 ## Compiling (only recommended for production)
 At this time, only Linux is supported as the target platform. This limitation stems from the WYSIWYG webserver choice (Gunicorn) for API production use. 
 
-1. Make sure steps outlined in [setup](#setup) have been completed
-2. Make sure you have `binutils` and `build-essential` installed. Consider installing the `ccache` to optimize compile time
+1. Ensure you've completed the [local development environment setup](#setup-development-environment) instructions.
+2. Make sure you have `binutils` and `build-essential` installed. Consider installing `ccache` to optimize compilation.
 3. Run the Nuitka compiler: `poetry run invoke build`
 4. Find the output binary in `out/`
