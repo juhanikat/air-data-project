@@ -49,7 +49,7 @@ export const SensorValueCard = ({
             </Flex>
             <Flex>
               <Stat.ValueText>
-                {value} {type === 'temperature' ? '°C' : '%'}
+                {value.toFixed(2)} {type === 'temperature' ? '°C' : '%'}
               </Stat.ValueText>
             </Flex>
             <Flex justify={'flex-end'}>

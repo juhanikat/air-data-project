@@ -2,10 +2,14 @@ from typing import Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from util.context import Context
 from util.mqtt_client import MQTTClient
+from threading import Thread
 
 class MQTTClientService:
+    thread: Thread | None
+
     def __init__(self):
         self.client = MQTTClient()
+        self.thread = None
 
     def register_listeners(self, context: "Context"):
         # MARK: Main listener (# is wildcard)
@@ -90,10 +94,14 @@ class MQTTClientService:
 
 
     def listen(self, address: str, port: int, username: Optional[str], password: Optional[str]):
-        try:
-            self.client.listen(address, port, username, password)
-        except Exception as e:
-            print("Failed to establish")
+        def _listen():
+            try:
+                self.client.listen(address, port, username, password)
+            except Exception as e:
+                print(f"Failed to establish: {e}")
+
+        self.thread = Thread(target=_listen, daemon=True)
+        self.thread.start()
 
 
     def stop(self):

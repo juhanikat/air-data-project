@@ -1,9 +1,13 @@
-from flask import Flask, request
+from flask import Flask, request, session
 from typing import Any, TYPE_CHECKING
 from json import dumps
 from time import time
 from flask_cors import CORS
+from random import randbytes
+from threading import Thread
+from werkzeug.security import check_password_hash
 from util.science import downSampleMeasurementsTo
+from util.auth import refresh_session, requires_authentication
 if TYPE_CHECKING:
     from util.context import Context
 
@@ -24,7 +28,6 @@ def conditionally_declare_GunicornApplication():
         def load(self):
             return self.application
 
-
     return GunicornApplication
 
 
@@ -35,15 +38,21 @@ class APIService():
     app: Flask
     port: int
     listening: bool = False
+    thread: Thread | None
 
     def __init__(self):
         self.app = Flask(__name__)
+        self.app.config["SESSION_COOKIE_HTTPONLY"] = True
+        self.app.config["SESSION_COOKIE_SAMESITE"] = "Strict"
+        self.app.secret_key = randbytes(256)
+        self.thread = None
 
 
     def register_routes(self, context: "Context"):
         # MARK: /latest
         # Get all latest measurements
         @self.app.route("/api/v1/latest")
+        @refresh_session
         def latest():
             # TODO: Authentication
             with context.database.from_thread() as database:
@@ -55,6 +64,7 @@ class APIService():
         # MARK: /query
         # Query historical data
         @self.app.route("/api/v1/query", methods=["POST"])
+        @refresh_session
         def query():
             try:
                 body = request.get_json()
@@ -64,7 +74,7 @@ class APIService():
             if "start" not in body and "end" not in body:
                 return "Missing a required key 'start' or 'end'", 400
             if ("start" in body and type(body["start"]) != int) or ("end" in body and type(body["end"]) != int):
-                return "Keys 'start' and 'end' bust be undefined or int", 400
+                return "Keys 'start' and 'end' must be undefined or int", 400
             if "id" not in body or type(body["id"]) != int:
                 return "Key 'id' (sensor id) required", 400
             if "downsample" in body and type(body["downsample"]) != bool:
@@ -84,7 +94,7 @@ class APIService():
 
             # Downsampling
             if body["downsample"]:
-                items = downSampleMeasurementsTo(items, body["sampling_method"], body["sampling_interval"])
+                items = downSampleMeasurementsTo(items, body["sampling_method"], body["sample_interval"])
 
             return dumps({
                 "sensor": sensor.to_dict(),
@@ -95,6 +105,7 @@ class APIService():
         # MARK: /stats
         # Get stats for stored measurements
         @self.app.route("/api/v1/stats")
+        @refresh_session
         def stats():
             with context.database.from_thread() as database:
                 data = database.get_measurement_statistics()
@@ -107,6 +118,7 @@ class APIService():
         # MARK: /list
         # Get list of sensors
         @self.app.route("/api/v1/sensors")
+        @refresh_session
         def list_data():
             with context.database.from_thread() as database:
                 data = database.get_sensors()
@@ -115,7 +127,10 @@ class APIService():
                 "Content-Type": "application/json"
             }
 
+
+        # MARK: /gateway-events
         @self.app.route("/api/v1/gateway-events")
+        @refresh_session
         def list_events():
             with context.database.from_thread() as database:
                 data = database.get_gateway_events()
@@ -128,6 +143,84 @@ class APIService():
                 "Content-Type": "application/json"
             }
 
+        # MARK: /login
+        @self.app.route("/api/v1/login", methods=["POST"])
+        def login():
+            try:
+                body = request.get_json()
+            except Exception:
+                return "Expected application/json", 400
+
+            if "username" not in body or type(body["username"]) != str:
+                return "Key 'username' must be str", 400
+            if "password" not in body or type(body["password"]) != str:
+                return "Key 'password' must be str", 400
+
+            with context.database.from_thread() as database:
+                user = database.get_user(body["username"])
+
+            # Always compare against something to prevent timing attacks
+            compare_to = user.password_hash if user else randbytes(8).hex()
+            password_matches = check_password_hash(compare_to, body["password"])
+            if user is None or not password_matches:
+                return "Invalid username or password", 401
+
+            # Add session
+            session["user"] = {
+                "id": user.id,
+                "name": user.name,
+                "last_used": time()
+            }
+
+            return dumps({ "id": user.id, "name": user.name }), 200
+
+        # MARK: /me
+        @self.app.route("/api/v1/me")
+        @requires_authentication
+        @refresh_session
+        def me():
+            user = session["user"]
+            return dumps({ "id": user["id"], "name": user["name"] }), 200
+
+
+        # MARK: /logout
+        @self.app.route("/api/v1/logout")
+        @requires_authentication
+        def logout():
+            del session["user"]
+            return "Session deleted", 200
+
+
+        # MARK: /edit-sensor
+        @self.app.route("/api/v1/edit-sensor", methods=["POST"])
+        @requires_authentication
+        @refresh_session
+        def edit_sensor():
+            try:
+                body = request.get_json()
+            except Exception:
+                return "Expected application/json", 400
+
+            if "id" not in body or type(body["id"]) != int:
+                return "Key 'id' must be int", 400
+            if "name" in body and type(body["name"]) != str:
+                return "Key 'name' must be str or undefined", 400
+            if "location" in body and type(body["location"]) != str:
+                return "Key 'location' must be str or undefined", 400
+
+            with context.database.from_thread() as database:
+                sensor = database.get_sensor(body["id"])
+                if sensor is None:
+                    return "No such sensor", 400
+
+                new_name = body["name"] if "name" in body else sensor.name
+                new_location = body["location"] if "location" in body else sensor.location
+                if len(new_name) > 64 or len(new_location) > 64:
+                    return "Name and location max length is 64 chars", 400
+
+                database.edit_sensor(sensor.id, new_name, new_location)
+                return "Edits performed", 200
+        
 
     def listen(self, address: str = "127.0.0.1", port: int = 9001, development_mode: bool = False):
         if self.listening:
@@ -140,14 +233,18 @@ class APIService():
         CORS(self.app, origins=[
             "http://icetea.esinko.net:9000",
             "http://localhost:9000"
-        ])
+        ], supports_credentials=True)
 
-        if not development_mode:
-            # NOTE: We need to this trick to make development mode work on Windows
-            GunicornApplication = conditionally_declare_GunicornApplication()
-            GunicornApplication(self.app, {
-                "bind": f"{address}:{port}",
-                "workers": 4,
-            }).run()
-        else:
-            self.app.run(host=self.address, port=self.port, debug=False) 
+        def _listen():
+            if not development_mode:
+                # NOTE: We need to this trick to make development mode work on Windows
+                GunicornApplication = conditionally_declare_GunicornApplication()
+                GunicornApplication(self.app, {
+                    "bind": f"{address}:{port}",
+                    "workers": 4,
+                }).run()
+            else:
+                self.app.run(host=self.address, port=self.port, debug=False) 
+
+        self.thread = Thread(target=_listen, daemon=True)
+        self.thread.start()

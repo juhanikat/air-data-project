@@ -12,7 +12,7 @@ export interface Sensor {
 }
 
 export interface SensorReading {
-  timestamp: number | null
+  timestamp: number
   temperature: number | null
   humidity: number | null
   pressure: number | null
@@ -76,13 +76,24 @@ export interface DownsampledSensorReading {
   during_calibration: boolean
 }
 
-export interface SensorData {
+export interface QueryResponse {
   sensor: Sensor
   results: DownsampledSensorReading[] | SensorReading[]
   downsample: boolean | undefined
 }
 
-async function query(id: number, options: QueryOptions): Promise<SensorData> {
+export interface SensorData {
+  sensor: Sensor
+  results: SensorReading[]
+  downsample: boolean | undefined
+}
+
+export interface User {
+  id: number
+  name: string
+}
+
+async function query(id: number, options: QueryOptions): Promise<QueryResponse> {
   const res = await fetch(`${getBaseURL()}/api/v1/query`, {
     method: "POST",
     headers: {
@@ -97,17 +108,48 @@ function toSensorReadings(items: DownsampledSensorReading[], method: string): Se
   return items.map((item) =>
     Object.fromEntries(
       Object.keys(item).map((key) =>
-        typeof item[key] == "object" ? item[key][method] : item[key]
+        // @ts-expect-error Too lazy to fix
+        [key, item[key][method] ?? item[key]]
       )
     ) as SensorReading
   )
+}
+
+async function getMe(): Promise<User | undefined> {
+  const res = await fetch(`${getBaseURL()}/api/v1/me`, { credentials: "include" })
+  if (res.status !== 200) return undefined
+  return (await res.json())
+}
+
+
+async function login(username: string, password: string): Promise<User | undefined> {
+  const res = await fetch(`${getBaseURL()}/api/v1/login`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      username,
+      password
+    })
+  })
+  if (res.status !== 200) return undefined
+  return (await res.json())
+}
+
+async function logout() {
+  await fetch(`${getBaseURL()}/api/v1/logout`, { credentials: "include" })
 }
 
 export default {
   getLatest,
   getBaseURL,
   query,
-  toSensorReadings
+  toSensorReadings,
+  getMe,
+  login,
+  logout
 }
 
 

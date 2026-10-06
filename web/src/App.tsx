@@ -1,30 +1,20 @@
 import { useEffect, useState } from 'react'
-import api, { DownsampledSensorReading, SensorData } from './services/api'
+import api, { DownsampledSensorReading, SensorData, User } from './services/api'
 import SettingsPage from './pages/SettingsPage'
 import MainPage from './pages/MainPage'
-import { Tabs } from '@chakra-ui/react'
-
-/**
- * Formats a Unix timestamp (seconds from 1970-01-01 00:00:00 UTC) as a local date-time string.
- *
- * @param {number} timestamp - Unix timestamp in seconds.
- * @returns {string} Formatted as "YYYY-MM-DD HH-MM-SS" in local time.
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const formatTimestamp = (timestamp: number) => {
-  const date = new Date(timestamp * 1000)
-  const pad = (value: number) => String(value).padStart(2, '0')
-  // Use local time
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`
-  // Use UTC time
-  //return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}-${pad(date.getUTCMinutes())}-${pad(date.getUTCSeconds())}`
-}
+import { Container, Tabs } from '@chakra-ui/react'
+import { LoadingScreen } from './components/LoadingScreen'
+import { Header } from './components/Header'
+import LoginPage from './pages/LoginPage'
+import AccountPage from './pages/AccountPage'
 
 const App = () => {
   const [sensorData, setSensorData] = useState<SensorData>()
+  const [loadError, setLoadError] = useState<string | undefined>()
+  const [page, setPage] = useState<string>("mainPage")
+  const [user, setUser] = useState<User | undefined>(undefined)
 
-  // Test fetching data directly from icetea.esinko.net
-  // Not in use.
+  // Fetch data directly from icetea.esinko.net
   useEffect(() => {
     api
       .query(2, {
@@ -40,14 +30,28 @@ const App = () => {
           'mean'
         )
 
-        setSensorData(data)
+        setSensorData(data as SensorData)
+      })
+      .catch((err) => {
+        console.error(err)
+        setLoadError(err.toString())
       })
   }, [])
-  console.log('data from internet:', sensorData)
+
+  useEffect(() => {
+    api.getMe().then((user) => {
+      if (user) {
+        console.log("Logged in as:", user)
+        setUser(user)
+      }
+    })
+  }, [])
 
   if (!sensorData) {
-    return <div>Fetching sensor data...</div>
+    return <LoadingScreen error={loadError}/>
   }
+
+  console.log('data from production:', sensorData)
   const sensorReadings = sensorData.results
 
   // Calculate how many data points there are in a week
@@ -68,12 +72,12 @@ const App = () => {
       : 0
 
   return (
-    <div>
-      <h1>Ebin Air Data Roject</h1>
-      <Tabs.Root defaultValue="mainPage">
+    <Container pt={2}>
+      <Header setPage={setPage} user={user}/>
+      <Tabs.Root value={page} onValueChange={({ value }) => setPage(value)}>
         <Tabs.List>
-          <Tabs.Trigger value="mainPage">Main</Tabs.Trigger>
-          <Tabs.Trigger value="settingsPage">Settings</Tabs.Trigger>
+          <Tabs.Trigger value="mainPage">Home</Tabs.Trigger>
+          <Tabs.Trigger value="">Forecast</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="mainPage">
           <MainPage
@@ -85,8 +89,20 @@ const App = () => {
         <Tabs.Content value="settingsPage">
           <SettingsPage />
         </Tabs.Content>
+        <Tabs.Content value="loginPage">
+          <LoginPage setUser={(user) => {
+            setUser(user)
+            setPage("mainPage")
+          }}/>
+        </Tabs.Content>
+        <Tabs.Content value="accountPage">
+          <AccountPage setUser={(user) => {
+            setUser(user)
+            setPage("mainPage")
+          }}/>
+        </Tabs.Content>
       </Tabs.Root>
-    </div>
+    </Container>
   )
 }
 

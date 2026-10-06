@@ -1,7 +1,7 @@
 import { HStack } from '@chakra-ui/react'
 import { SensorValueCard } from '../components/SensorValueCard'
 import Chart from '../components/Chart'
-import { SensorData } from '@/App'
+import { SensorData } from '@/services/api'
 
 const MainPage = ({
   data,
@@ -22,17 +22,18 @@ const MainPage = ({
 
   return (
     <div>
+      
       <HStack gap="4px" align="start">
         <SensorValueCard
           type={'temperature'}
           label={'Test Temperature Card'}
-          value={sensorReadings[lastIndex].temperature}
+          value={sensorReadings[lastIndex].temperature ?? 0}
           timestamp={lastDataPoint}
         />
         <SensorValueCard
           type={'percentage'}
           label={'Test Humidity Card'}
-          value={sensorReadings[lastIndex].humidity}
+          value={sensorReadings[lastIndex].humidity ?? 0}
           timestamp={lastDataPoint}
         />
       </HStack>

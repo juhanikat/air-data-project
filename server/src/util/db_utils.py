@@ -203,3 +203,16 @@ class MeasurementItemSingular:
             "nox": self.nox,
             "during_calibration": self.during_calibration
         }
+
+@dataclass
+class User:
+    id: int
+    name: str
+    password_hash: str
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "password_hash": self.password_hash
+        }

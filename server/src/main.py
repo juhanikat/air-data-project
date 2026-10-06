@@ -2,9 +2,11 @@ from sys import exit, stdout
 from signal import signal, SIGINT, SIG_IGN, SIGTERM
 from util.context import Context
 from util.args import get_app_args
+from util.cli import cli
 
 
 def on_exit(context: Context):
+    print("Closing down ...")
     context.destroy()
     print("Goodbye.")
     exit(0)
@@ -42,9 +44,8 @@ def main():
                            args.get("api_port") or 9001,
                            args.get("dev") or False)
 
-        # api.listen should occupy the main thread
-        # when it returns, we want to be exiting
-        # hence this
+        # cli occupies main thread
+        cli(context)
         on_exit(context)
     except KeyboardInterrupt:
         signal(SIGINT, SIG_IGN)

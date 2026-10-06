@@ -2,7 +2,13 @@ from typing import List, Optional, Tuple
 from time import time
 from contextlib import contextmanager
 from collections.abc import Generator
-from util.db_utils import DatabaseConnection, SensorItem, MeasurementItemFull, MeasurementItemSingular, MeasurementStatistic, GatewayEvent
+from werkzeug.security import generate_password_hash
+from random import randbytes
+from util.db_utils import (
+    DatabaseConnection, SensorItem, MeasurementItemFull,
+    MeasurementItemSingular, MeasurementStatistic, GatewayEvent,
+    User
+)
 
 class DatabaseService():
     _connection: DatabaseConnection
@@ -62,10 +68,23 @@ class DatabaseService():
     def set_sensor_battery_voltage(self, sensor_id: int, voltage: float):
         sensor = self.get_sensor(sensor_id)
         if not sensor:
+            # TODO: Why is this a print and not a raise?
             print(f"ERROR: Cannot record battery voltage for unknown sensor ({sensor_id})")
             return
 
         self._db.execute("UPDATE Sensors SET battery_voltage = ? WHERE id = ?;", (voltage, sensor_id))
+
+    # MARK: Set sensor location
+    def edit_sensor(self, sensor_id: int, location: str | None = None, name: str | None = None):
+        sensor = self.get_sensor(sensor_id)
+        if not sensor:
+            raise RuntimeError("No such sensor")
+
+        self._db.execute("UPDATE Sensors SET location = ?, name = ? WHERE id = ?;", (
+            location if location is not None else sensor.location,
+            name if name is not None else sensor.name,
+            sensor_id
+        ))
 
 
     # MARK: Get sensors
@@ -100,7 +119,6 @@ class DatabaseService():
 
         return MeasurementStatistic(id_to_mac,
                                     count_per_sensor)
-
 
     # MARK: Events
     def log_gateway_state(self, state: str):
@@ -238,3 +256,45 @@ class DatabaseService():
                 NOx
             )
         )
+
+
+    # MARK: User stuff
+    def get_user(self, username: str) -> User | None:
+        rows = self._db.query("SELECT id, username, password_hash FROM Users WHERE username = ?;", (username,))
+        if len(rows) == 0:
+            return None
+
+        # TODO: Fix database to ensure usernames are unique!
+        if len(rows) > 1:
+            raise RuntimeError("User is broken")
+
+        return User(*rows[0])
+
+
+    def list_users(self) -> List[User]:
+        rows = self._db.query("SELECT id, username, password_hash FROM Users", None)
+        return [ User(*row) for row in rows ]
+
+
+    def create_user(self, username: str, password: str) -> User:
+        if self.get_user(username) is not None:
+            raise RuntimeError("User exists!")
+
+        hash = generate_password_hash(password)
+        self._db.execute("INSERT INTO Users (username, password_hash) VALUES (?, ?);", (username, hash))
+        user = self.get_user(username)
+        if user is None:
+            raise RuntimeError("User creation failed")
+
+        return user
+
+
+    def reset_password(self, username: str) -> str:
+        reset_password = randbytes(8).hex()
+        hash = generate_password_hash(reset_password)
+        self._db.execute("UPDATE Users SET password_hash = ? WHERE username = ?;", (hash, username))
+        return reset_password
+
+    def set_user_password(self, username: str, password: str):
+        self._db.execute("UPDATE Users SET password_hash = ? WHERE username = ?;", (generate_password_hash(password),
+                                                                                    username))

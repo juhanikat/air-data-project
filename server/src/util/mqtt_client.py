@@ -51,7 +51,6 @@ class MQTTClient:
     ):
         self.connected = False
         print("WARNING: Connection to MQTT server lost:", reason_code)
-        sleep(3)
         print("Retrying ...")
         self._connect()
 
@@ -89,7 +88,6 @@ class MQTTClient:
             self.client.loop_start()
         except Exception as e:
             print("ERROR: MQTT connect failed", *format_exception(e))
-            sleep(3)
             print("Retrying ...")
             self._connect()
 
