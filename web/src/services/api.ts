@@ -1,6 +1,6 @@
 function getBaseURL() {
   // @ts-expect-error We can safely check
-  if (import.meta?.env?.DEV) return "http://localhost:9001"
+  if (import.meta.env?.DEV) return "http://localhost:9001"
   return "http://icetea.esinko.net:9001"
 }
 
@@ -44,12 +44,12 @@ type QueryDownSamplingMethod = "mean" | "average" | "min" | "max"
 type QueryDownSampleOptions =
   | {
     downsample?: false
-    sample_method?: never
+    sampling_method?: never
     sample_interval?: never
   }
   | {
     downsample: true
-    sample_method: QueryDownSamplingMethod | QueryDownSamplingMethod[]
+    sampling_method: QueryDownSamplingMethod | QueryDownSamplingMethod[]
     sample_interval?: number
   }
 

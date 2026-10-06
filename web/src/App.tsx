@@ -29,13 +29,16 @@ const App = () => {
     api
       .query(2, {
         downsample: true,
-        sampling_method: "mean",
+        sampling_method: 'mean',
         sample_interval: 360, // one sample every 10 seconds, 360 * 10 = 1 hour
-        start: 0 // All data!
+        start: 0, // All data!
       })
       .then((data) => {
         // Format data to be just the values without "mean" key
-        data.results = api.toSensorReadings(data.results as DownsampledSensorReading[], "mean")
+        data.results = api.toSensorReadings(
+          data.results as DownsampledSensorReading[],
+          'mean'
+        )
 
         setSensorData(data)
       })

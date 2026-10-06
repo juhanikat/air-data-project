@@ -5,6 +5,7 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   server: {
+    port: 9000,
     proxy: {
       '/air-api': {
         target: 'http://icetea.esinko.net:9001',
