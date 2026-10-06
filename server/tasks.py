@@ -6,7 +6,7 @@ def test(ctx):
 
 @task
 def start(ctx):
-    ctx.run(f"cd ./src && poetry run python main.py --dev")
+    ctx.run(f"cd ./src && poetry run python main.py --dev --mqtt-address localhost --mqtt-port 9003")
 
 @task
 def start_prod(ctx):

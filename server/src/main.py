@@ -3,6 +3,7 @@ from signal import signal, SIGINT, SIG_IGN, SIGTERM
 from util.context import Context
 from util.args import get_app_args
 
+
 def on_exit(context: Context):
     context.destroy()
     print("Goodbye.")
@@ -11,7 +12,7 @@ def on_exit(context: Context):
 
 def main():
     # Mandatory init
-    is_compiled =  "__compiled__" in globals()
+    is_compiled = "__compiled__" in globals()
     if is_compiled:
         stdout.reconfigure(line_buffering=True) # pyright: ignore[reportAttributeAccessIssue]
     args = get_app_args()
@@ -38,7 +39,7 @@ def main():
         # MARK: API
         context.api.register_routes(context)
         context.api.listen(args.get("api_address") or "127.0.0.1",
-                           args.get("api_port") or 8000,
+                           args.get("api_port") or 9001,
                            args.get("dev") or False)
 
         # api.listen should occupy the main thread

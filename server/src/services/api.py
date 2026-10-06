@@ -67,9 +67,9 @@ class APIService():
                 return "Keys 'start' and 'end' bust be undefined or int", 400
             if "id" not in body or type(body["id"]) != int:
                 return "Key 'id' (sensor id) required", 400
-            if "downsample" in body and type(body["downsample"] != bool):
+            if "downsample" in body and type(body["downsample"]) != bool:
                 return "Key 'downsample' must be undefined or bool", 400
-            if body["downsample"] and ("sampling_method" not in body or (type(body["sampling_method"] != str) and type(body["sampling_method"] != list))):
+            if body["downsample"] and ("sampling_method" not in body or (type(body["sampling_method"]) != str and type(body["sampling_method"]) != list)):
                 return "Key 'sampling_method' must be str or list", 400
             if body["downsample"] and ("sample_interval" not in body or type(body["sample_interval"]) != int):
                 return "Key 'sample_interval' must be int", 400
@@ -129,7 +129,7 @@ class APIService():
             }
 
 
-    def listen(self, address: str = "127.0.0.1", port: int = 8000, development_mode: bool = False):
+    def listen(self, address: str = "127.0.0.1", port: int = 9001, development_mode: bool = False):
         if self.listening:
             raise RuntimeError("Called listen twice!")
 

@@ -29,7 +29,7 @@ const App = () => {
     api
       .query(2, {
         downsample: true,
-        sample_method: "mean",
+        sampling_method: "mean",
         sample_interval: 360, // one sample every 10 seconds, 360 * 10 = 1 hour
         start: 0 // All data!
       })
