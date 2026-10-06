@@ -45,6 +45,7 @@ def main():
                            args.get("dev") or False)
 
         # cli occupies main thread
+        print("Opening CLI")
         cli(context)
         on_exit(context)
     except KeyboardInterrupt:

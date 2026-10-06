@@ -21,3 +21,4 @@ class Context:
         """
         self.mqtt.stop()
         self.database.close()
+        self.api.stop()

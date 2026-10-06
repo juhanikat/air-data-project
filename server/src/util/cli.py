@@ -51,6 +51,7 @@ def cli(context: Context):
         try:
             line = input("> ")
         except EOFError:
+            print("STDIN is required!")
             return
 
         try:

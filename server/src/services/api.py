@@ -14,6 +14,13 @@ if TYPE_CHECKING:
 
 def conditionally_declare_GunicornApplication():
     from gunicorn.app.base import BaseApplication
+    from gunicorn.arbiter import Arbiter
+
+    # Patch arbiter to ignore winch
+    def ignore_winch(self):
+        self.log.debug("Ignoring SIGWINCH")
+    Arbiter.handle_winch = ignore_winch
+
     class GunicornApplication(BaseApplication):
         def __init__(self, app, options=None):
             self.application = app
@@ -240,17 +247,27 @@ class APIService():
 
         if not development_mode:
             # NOTE: We need to this trick to make development mode work on Windows
-            GunicornApplication = conditionally_declare_GunicornApplication()
-            GunicornApplication(self.app, {
-                "bind": f"{address}:{port}",
-                "workers": 4,
-                "daemon": True
-            }).run()
+            def _listen():
+                GunicornApplication = conditionally_declare_GunicornApplication()
+                GunicornApplication(self.app, {
+                    "bind": f"{self.address}:{self.port}",
+                    "workers": 4,
+                    "daemon": False,
+                }).run()
+
+            self.process = Process(target=_listen)
+            self.process.start()
         else:
             def _listen():
                 self.app.run(host=self.address, port=self.port, debug=False) 
 
             self.thread = Thread(target=_listen, daemon=True)
             self.thread.start()
+
+    # MARK: Stop
+    def stop(self):
+        if self.process is not None:
+            self.process.terminate()
+            self.process.join()
 
         
