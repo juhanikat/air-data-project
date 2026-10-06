@@ -2,6 +2,7 @@ from flask import Flask, request, session
 from typing import Any, TYPE_CHECKING
 from json import dumps
 from time import time
+from multiprocessing import Process
 from flask_cors import CORS
 from random import randbytes
 from threading import Thread
@@ -39,6 +40,7 @@ class APIService():
     port: int
     listening: bool = False
     thread: Thread | None
+    process: Process | None
 
     def __init__(self):
         self.app = Flask(__name__)
@@ -46,6 +48,7 @@ class APIService():
         self.app.config["SESSION_COOKIE_SAMESITE"] = "Strict"
         self.app.secret_key = randbytes(256)
         self.thread = None
+        self.process = None
 
 
     def register_routes(self, context: "Context"):
@@ -235,16 +238,19 @@ class APIService():
             "http://localhost:9000"
         ], supports_credentials=True)
 
-        def _listen():
-            if not development_mode:
-                # NOTE: We need to this trick to make development mode work on Windows
-                GunicornApplication = conditionally_declare_GunicornApplication()
-                GunicornApplication(self.app, {
-                    "bind": f"{address}:{port}",
-                    "workers": 4,
-                }).run()
-            else:
+        if not development_mode:
+            # NOTE: We need to this trick to make development mode work on Windows
+            GunicornApplication = conditionally_declare_GunicornApplication()
+            GunicornApplication(self.app, {
+                "bind": f"{address}:{port}",
+                "workers": 4,
+                "daemon": True
+            }).run()
+        else:
+            def _listen():
                 self.app.run(host=self.address, port=self.port, debug=False) 
 
-        self.thread = Thread(target=_listen, daemon=True)
-        self.thread.start()
+            self.thread = Thread(target=_listen, daemon=True)
+            self.thread.start()
+
+        
