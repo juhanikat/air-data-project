@@ -50,6 +50,10 @@ def cli(context: Context):
     while True:
         try:
             line = input("> ")
+        except EOFError:
+            return
+
+        try:
             command = split(line)
         except ValueError as e:
             print(f"Invalid command: {e}")
