@@ -1,35 +1,20 @@
-import {
-  Button,
-  Field,
-  Fieldset,
-  Flex,
-  Input,
-  Listbox,
-} from "@chakra-ui/react";
-import { createListCollection } from "@chakra-ui/react";
-import { SyntheticEvent } from "react";
-
-export type Sensor = {
-  sensor_id: number;
-  sensor_name: string;
-  sensor_mac: string;
-  sensor_location: string | null;
-};
+import { Sensor } from '../services/api'
+import { createListCollection, Flex, Listbox } from '@chakra-ui/react'
 
 type SensorListProps = {
-  sensors: Sensor[];
-};
+  sensors: Sensor[]
+}
 
 type LoginInfo = {
-  username: string;
-  password: string;
-};
+  username: string
+  password: string
+}
 
 const SensorList: React.FC<SensorListProps> = ({ sensors }) => {
-  const sensorCollection = createListCollection({ items: sensors });
+  const sensorCollection = createListCollection({ items: sensors })
 
   return (
-    <Listbox.Root collection={sensorCollection} maxWidth={"1/2"}>
+    <Listbox.Root collection={sensorCollection} maxWidth={'1/2'}>
       <Listbox.Label>
         Select a sensor to edit it (does not work yet)
       </Listbox.Label>
@@ -42,28 +27,28 @@ const SensorList: React.FC<SensorListProps> = ({ sensors }) => {
         ))}
       </Listbox.Content>
     </Listbox.Root>
-  );
-};
+  )
+}
 const placeholderSensor: Sensor = {
-  sensor_id: 1,
-  sensor_name: "Placeholder Sensor",
-  sensor_mac: "12345",
-  sensor_location: "Gurula",
-};
+  id: 1,
+  name: 'Placeholder Sensor',
+  mac: '12345',
+  location: 'Gurula',
+}
 const SettingsPage = () => {
   return (
     <div>
-      <Flex direction={"row"} gap={"10"} margin={"5"}>
+      <Flex direction={'row'} gap={'10'} margin={'5'}>
         <SensorList
           sensors={[
             placeholderSensor,
-            { ...placeholderSensor, sensor_id: 2 },
-            { ...placeholderSensor, sensor_id: 3 },
+            { ...placeholderSensor, id: 2 },
+            { ...placeholderSensor, id: 3 },
           ]}
         />
       </Flex>
     </div>
-  );
-};
+  )
+}
 
-export default SettingsPage;
+export default SettingsPage

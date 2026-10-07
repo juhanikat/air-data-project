@@ -1,7 +1,7 @@
 function getBaseURL() {
   // @ts-expect-error We can safely check
-  if (import.meta.env?.DEV) return "http://localhost:9001"
-  return "http://icetea.esinko.net:9001"
+  if (import.meta.env?.DEV) return 'http://localhost:9001'
+  return 'http://icetea.esinko.net:9001'
 }
 
 export interface Sensor {
@@ -39,23 +39,24 @@ type QueryIntervalOptions =
   | { start: number; end?: number }
   | { start?: number; end: number }
 
-type QueryDownSamplingMethod = "mean" | "average" | "min" | "max"
+type QueryDownSamplingMethod = 'mean' | 'average' | 'min' | 'max'
 
 type QueryDownSampleOptions =
   | {
-    downsample?: false
-    sampling_method?: never
-    sample_interval?: never
-  }
+      downsample?: false
+      sampling_method?: never
+      sample_interval?: never
+    }
   | {
-    downsample: true
-    sampling_method: QueryDownSamplingMethod | QueryDownSamplingMethod[]
-    sample_interval?: number
-  }
+      downsample: true
+      sampling_method: QueryDownSamplingMethod | QueryDownSamplingMethod[]
+      sample_interval?: number
+    }
 
 type QueryOptions = QueryIntervalOptions & QueryDownSampleOptions
 
-interface DownSampledFloat { // NOTE: Too lazy to do conditionals
+interface DownSampledFloat {
+  // NOTE: Too lazy to do conditionals
   mean?: number
   median?: number
   min?: number
@@ -82,6 +83,14 @@ export interface QueryResponse {
   downsample: boolean | undefined
 }
 
+export interface QueryResponse {
+  sensor: Sensor
+  results: DownsampledSensorReading[] | SensorReading[]
+  downsample: boolean | undefined
+}
+
+export type SensorsResponse = Sensor[]
+
 export interface SensorData {
   sensor: Sensor
   results: SensorReading[]
@@ -93,63 +102,83 @@ export interface User {
   name: string
 }
 
-async function query(id: number, options: QueryOptions): Promise<QueryResponse> {
+async function query(
+  id: number,
+  options: QueryOptions
+): Promise<QueryResponse> {
   const res = await fetch(`${getBaseURL()}/api/v1/query`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json"
+      'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ id, ...options })
+    body: JSON.stringify({ id, ...options }),
   })
-  return (await res.json())
+  return await res.json()
 }
 
-function toSensorReadings(items: DownsampledSensorReading[], method: string): SensorReading[] {
-  return items.map((item) =>
-    Object.fromEntries(
-      Object.keys(item).map((key) =>
-        // @ts-expect-error Too lazy to fix
-        [key, item[key][method] ?? item[key]]
-      )
-    ) as SensorReading
+async function getAllSensors(): Promise<SensorsResponse> {
+  const res = await fetch(`${getBaseURL()}/api/v1/sensors`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+  return await res.json()
+}
+
+function toSensorReadings(
+  items: DownsampledSensorReading[],
+  method: string
+): SensorReading[] {
+  return items.map(
+    (item) =>
+      Object.fromEntries(
+        Object.keys(item).map((key) =>
+          // @ts-expect-error Too lazy to fix
+          [key, item[key][method] ?? item[key]]
+        )
+      ) as SensorReading
   )
 }
 
 async function getMe(): Promise<User | undefined> {
-  const res = await fetch(`${getBaseURL()}/api/v1/me`, { credentials: "include" })
+  const res = await fetch(`${getBaseURL()}/api/v1/me`, {
+    credentials: 'include',
+  })
   if (res.status !== 200) return undefined
-  return (await res.json())
+  return await res.json()
 }
 
-
-async function login(username: string, password: string): Promise<User | undefined> {
+async function login(
+  username: string,
+  password: string
+): Promise<User | undefined> {
   const res = await fetch(`${getBaseURL()}/api/v1/login`, {
-    method: "POST",
-    credentials: "include",
+    method: 'POST',
+    credentials: 'include',
     headers: {
-      "Content-Type": "application/json"
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       username,
-      password
-    })
+      password,
+    }),
   })
   if (res.status !== 200) return undefined
-  return (await res.json())
+  return await res.json()
 }
 
 async function logout() {
-  await fetch(`${getBaseURL()}/api/v1/logout`, { credentials: "include" })
+  await fetch(`${getBaseURL()}/api/v1/logout`, { credentials: 'include' })
 }
 
 export default {
   getLatest,
   getBaseURL,
   query,
+  getAllSensors,
   toSensorReadings,
   getMe,
   login,
-  logout
+  logout,
 }
-
-
