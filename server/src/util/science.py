@@ -1,3 +1,4 @@
+from math import isnan
 import numpy as np
 from dataclasses import dataclass
 from typing import List, Literal, Optional
@@ -102,6 +103,8 @@ def downSampleMeasurementsTo(
             single_value_fields = dict()
             for method in methods: # type: ignore
                 single_value_fields[method] = result_arrays[value_key][method][i]
+                if isnan(single_value_fields[method]):
+                    single_value_fields[method] = None
             downsampled_values_fields[value_key] = DownSampledValue(**single_value_fields)
         results.append(DownSampledMeasurementItemSingular(
             timestamp=int(timestamps[i]), during_calibration=False,
