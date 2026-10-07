@@ -39,6 +39,9 @@ export const SensorValueCard = ({
   const unit = time.value === 1 ? time.unit : time.unit + 's'
   const color = type === 'temperature' ? 'red.100' : 'blue.100'
 
+  // quick fix since missing sensor values seem to be empty objects, instead of null?
+  if (Number.isNaN(Number(value))) return
+
   return (
     <Card.Root width="320px">
       <Card.Body gap="2" bgColor={color}>

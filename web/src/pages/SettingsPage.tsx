@@ -20,8 +20,8 @@ const SensorList: React.FC<SensorListProps> = ({ sensors }) => {
       </Listbox.Label>
       <Listbox.Content>
         {sensorCollection.items.map((sensor) => (
-          <Listbox.Item item={sensor} key={sensor.sensor_id}>
-            <Listbox.ItemText>{sensor.sensor_name}</Listbox.ItemText>
+          <Listbox.Item item={sensor} key={sensor.id}>
+            <Listbox.ItemText>{sensor.name}</Listbox.ItemText>
             <Listbox.ItemIndicator />
           </Listbox.Item>
         ))}

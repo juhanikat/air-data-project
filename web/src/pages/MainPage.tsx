@@ -1,4 +1,10 @@
-import { createListCollection, HStack, ListCollection } from '@chakra-ui/react'
+import {
+  createListCollection,
+  HStack,
+  ListCollection,
+  Portal,
+  Select,
+} from '@chakra-ui/react'
 import { useEffect, useState } from 'react'
 import Chart from '../components/Chart'
 import { LoadingScreen } from '../components/LoadingScreen'
@@ -10,6 +16,7 @@ const MainPage = () => {
   const [loadError, setLoadError] = useState<string | undefined>()
   const [sensorOptions, setSensorOptions] =
     useState<ListCollection<{ label: string; value: number }>>()
+  const [selectedSensorsIds, setSelectedSensorIds] = useState<number[]>([])
 
   useEffect(() => {
     api.getAllSensors().then((data) => {
@@ -29,6 +36,7 @@ const MainPage = () => {
       if (!sensorOptions) return
       const allData: SensorData[] = []
       for (const sensorOption of sensorOptions) {
+        console.log('moi')
         try {
           const data = await api.query(sensorOption.value, {
             downsample: true,
@@ -42,6 +50,7 @@ const MainPage = () => {
             data.results as DownsampledSensorReading[],
             'mean'
           )
+          allData.push(data as SensorData)
         } catch (err) {
           console.error(err)
           if (err instanceof Error) setLoadError(err.toString())
@@ -52,7 +61,7 @@ const MainPage = () => {
     joku()
   }, [sensorOptions])
 
-  if (!sensorData || !sensorOptions) {
+  if (sensorData.length === 0 || !sensorOptions) {
     return <LoadingScreen error={loadError} />
   }
 
@@ -73,14 +82,6 @@ const MainPage = () => {
         )
       : 1
 
-  // Set the end and start indices for the brush component. User will see the last week by default.gs
-  const defaultEndIndex =
-    sensorReadings.length > 1 ? sensorReadings.length - 1 : 0
-  const defaultStartIndex =
-    sensorReadings.length > 1
-      ? Math.max(0, sensorReadings.length - pointsPerWeek)
-      : 0
-
   return (
     <div>
       <HStack gap="4px" align="start">
@@ -97,26 +98,48 @@ const MainPage = () => {
           timestamp={lastDataPoint}
         />
       </HStack>
-
       <h2>Temperature</h2>
+
+      <Select.Root
+        multiple={true}
+        collection={sensorOptions}
+        onValueChange={(e) => {
+          setSelectedSensorIds(e.items.map((item) => item.value))
+        }}
+      >
+        <Select.Label>Select sensors to display</Select.Label>
+        <Select.Control>
+          <Select.Trigger>
+            <Select.ValueText placeholder="Select framework" />
+          </Select.Trigger>
+        </Select.Control>
+        <Portal>
+          <Select.Positioner>
+            <Select.Content>
+              {sensorOptions.items.map((sensor) => (
+                <Select.Item item={sensor} key={sensor.value}>
+                  {sensor.label}
+                  <Select.ItemIndicator />
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Positioner>
+        </Portal>
+      </Select.Root>
 
       <div>
         <Chart
-          data={sensorData}
+          originalData={sensorData}
           dataKey={'temperature'}
-          sensorOptions={sensorOptions}
-          defaultStartIndex={defaultStartIndex}
-          defaultEndIndex={defaultEndIndex}
+          selectedSensorIds={selectedSensorsIds}
         />
       </div>
       <h2>Humidity</h2>
       <div>
         <Chart
-          data={sensorData}
+          originalData={sensorData}
           dataKey={'humidity'}
-          sensorOptions={sensorOptions}
-          defaultStartIndex={defaultStartIndex}
-          defaultEndIndex={defaultEndIndex}
+          selectedSensorIds={selectedSensorsIds}
         />
       </div>
     </div>
