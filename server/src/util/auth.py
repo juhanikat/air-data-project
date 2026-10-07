@@ -1,7 +1,6 @@
 from functools import wraps
 from time import time
-
-from flask import session, redirect
+from flask import session
 
 SESSION_EXPIRY = 10 * 60
 
@@ -11,10 +10,10 @@ def requires_authentication(f):
     def decorated_function(*args, **kwargs):
         user = session.get("user")
         if user is None:
-            return redirect("/")
+            return "Unauthorized", 401
         if user.get("last_used", 0) + SESSION_EXPIRY < time():
             session.pop("user", None)
-            return redirect("/")
+            return "Unauthorized (session expired)", 401
 
         return f(*args, **kwargs)
 
