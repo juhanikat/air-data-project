@@ -23,7 +23,7 @@ const Chart = ({
   defaultEndIndex: number
 }) => {
   const dataWithConvertedTimestamps = data.map((reading) => {
-    return { ...reading, timestamp: new Date(reading.timestamp * 1000) }
+    return { ...reading, timestamp: new Date(reading.timestamp * 1000).toDateString() }
   })
   return (
     <ResponsiveContainer width="100%" height={500}>
