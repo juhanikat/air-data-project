@@ -14,31 +14,39 @@ import api, { DownsampledSensorReading, SensorData } from '../services/api'
 const MainPage = () => {
   const [sensorData, setSensorData] = useState<SensorData[]>([])
   const [loadError, setLoadError] = useState<string | undefined>()
+
+  // Currently displayed sensors
+  const [sensorSelectorValue, setSensorSelectorValue] = useState<string[]>([])
+
+  // All sensors that the backend has
   const [sensorOptions, setSensorOptions] =
-    useState<ListCollection<{ label: string; value: number }>>()
-  const [selectedSensorsIds, setSelectedSensorIds] = useState<number[]>([])
+    useState<ListCollection<{ label: string; value: string }>>()
 
   useEffect(() => {
     api.getAllSensors().then((data) => {
-      setSensorOptions(
-        createListCollection({
-          items: data.map((sensor) => ({
-            label: `${sensor.name ?? 'Unnamed sensor'} (Sensor ID: ${sensor.id})`,
-            value: sensor.id,
-          })),
-        })
+      const sensorItems = {
+        items: data.map((sensor) => ({
+          label: `${sensor.name ?? 'Unnamed sensor'} (Sensor ID: ${sensor.id})`,
+          value: String(sensor.id),
+        })),
+      }
+      const listCollection = createListCollection(sensorItems)
+      setSensorOptions(listCollection)
+
+      // show sensor with ID 1 by default, if it exists
+      setSensorSelectorValue(
+        sensorItems.items.find((item) => item.value === '1') ? ['1'] : []
       )
     })
   }, [])
 
   useEffect(() => {
-    const joku = async () => {
+    const getSensorData = async () => {
       if (!sensorOptions) return
       const allData: SensorData[] = []
       for (const sensorOption of sensorOptions) {
-        console.log('moi')
         try {
-          const data = await api.query(sensorOption.value, {
+          const data = await api.query(Number(sensorOption.value), {
             downsample: true,
             sampling_method: 'mean',
             sample_interval: 360, // one sample every 10 seconds, 360 * 10 = 1 hour
@@ -58,7 +66,7 @@ const MainPage = () => {
       }
       setSensorData(allData)
     }
-    joku()
+    getSensorData()
   }, [sensorOptions])
 
   if (sensorData.length === 0 || !sensorOptions) {
@@ -103,8 +111,9 @@ const MainPage = () => {
       <Select.Root
         multiple={true}
         collection={sensorOptions}
-        onValueChange={(e) => {
-          setSelectedSensorIds(e.items.map((item) => item.value))
+        value={sensorSelectorValue}
+        onValueChange={(details) => {
+          setSensorSelectorValue(details.items.map((item) => item.value))
         }}
       >
         <Select.Label>Select sensors to display</Select.Label>
@@ -131,7 +140,9 @@ const MainPage = () => {
         <Chart
           originalData={sensorData}
           dataKey={'temperature'}
-          selectedSensorIds={selectedSensorsIds}
+          selectedSensorIds={sensorSelectorValue.map((stringId) =>
+            Number(stringId)
+          )}
         />
       </div>
       <h2>Humidity</h2>
@@ -139,7 +150,9 @@ const MainPage = () => {
         <Chart
           originalData={sensorData}
           dataKey={'humidity'}
-          selectedSensorIds={selectedSensorsIds}
+          selectedSensorIds={sensorSelectorValue.map((stringId) =>
+            Number(stringId)
+          )}
         />
       </div>
     </div>
