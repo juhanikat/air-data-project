@@ -26,7 +26,7 @@ export interface SensorReading {
   during_calibration: boolean
 }
 
-interface LatestSensorData extends SensorReading {
+export interface LatestSensorData extends SensorReading {
   sensor: Sensor
 }
 

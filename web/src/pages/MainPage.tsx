@@ -1,79 +1,34 @@
-import {
-  createListCollection,
-  HStack,
-  ListCollection,
-  Portal,
-  Select,
-} from '@chakra-ui/react'
+import { HStack } from '@chakra-ui/react'
 import { useEffect, useState } from 'react'
-import Chart from '../components/Chart'
 import { LoadingScreen } from '../components/LoadingScreen'
 import { SensorValueCard } from '../components/SensorValueCard'
-import api, { DownsampledSensorReading, SensorData } from '../services/api'
+import api, { LatestSensorData } from '../services/api'
 
 const MainPage = () => {
-  const [sensorData, setSensorData] = useState<SensorData[]>([])
+  const [sensorData, setSensorData] = useState<LatestSensorData[]>([])
   const [loadError, setLoadError] = useState<string | undefined>()
 
-  // Currently displayed sensors
-  const [sensorSelectorValue, setSensorSelectorValue] = useState<string[]>([])
-
-  // All sensors that the backend has
-  const [sensorOptions, setSensorOptions] =
-    useState<ListCollection<{ label: string; value: string }>>()
-
   useEffect(() => {
-    api.getAllSensors().then((data) => {
-      const sensorItems = {
-        items: data.map((sensor) => ({
-          label: `${sensor.name ?? 'Unnamed sensor'} (Sensor ID: ${sensor.id})`,
-          value: String(sensor.id),
-        })),
-      }
-      const listCollection = createListCollection(sensorItems)
-      setSensorOptions(listCollection)
-
-      // show sensor with ID 1 by default, if it exists
-      setSensorSelectorValue(
-        sensorItems.items.find((item) => item.value === '1') ? ['1'] : []
-      )
-    })
+    api
+      .getLatest()
+      .then((data) => {
+        console.log(data)
+        setSensorData(data)
+      })
+      .catch((err) => {
+        console.log(err)
+        if (err instanceof Error) setLoadError(err.toString())
+      })
   }, [])
 
-  useEffect(() => {
-    const getSensorData = async () => {
-      if (!sensorOptions) return
-      const allData: SensorData[] = []
-      for (const sensorOption of sensorOptions) {
-        try {
-          const data = await api.query(Number(sensorOption.value), {
-            downsample: true,
-            sampling_method: 'mean',
-            sample_interval: 360, // one sample every 10 seconds, 360 * 10 = 1 hour
-            start: 0, // All data!
-          })
-
-          // Format data to be just the values without "mean" key
-          data.results = api.toSensorReadings(
-            data.results as DownsampledSensorReading[],
-            'mean'
-          )
-          allData.push(data as SensorData)
-        } catch (err) {
-          console.error(err)
-          if (err instanceof Error) setLoadError(err.toString())
-        }
-      }
-      setSensorData(allData)
-    }
-    getSensorData()
-  }, [sensorOptions])
-
-  if (sensorData.length === 0 || !sensorOptions) {
+  if (sensorData.length === 0) {
     return <LoadingScreen error={loadError} />
   }
 
-  const sensorReadings = sensorData.flatMap((data) => data.results)
+  const sensorReadings = sensorData.flatMap((data) => {
+    const { sensor, ...readingData } = data
+    return readingData
+  })
   if (sensorReadings.length === 0) return
 
   const lastIndex = sensorReadings.length - 1
@@ -106,55 +61,6 @@ const MainPage = () => {
           timestamp={lastDataPoint}
         />
       </HStack>
-      <h2>Temperature</h2>
-
-      <Select.Root
-        multiple={true}
-        collection={sensorOptions}
-        value={sensorSelectorValue}
-        onValueChange={(details) => {
-          setSensorSelectorValue(details.items.map((item) => item.value))
-        }}
-      >
-        <Select.Label>Select sensors to display</Select.Label>
-        <Select.Control>
-          <Select.Trigger>
-            <Select.ValueText placeholder="Select framework" />
-          </Select.Trigger>
-        </Select.Control>
-        <Portal>
-          <Select.Positioner>
-            <Select.Content>
-              {sensorOptions.items.map((sensor) => (
-                <Select.Item item={sensor} key={sensor.value}>
-                  {sensor.label}
-                  <Select.ItemIndicator />
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select.Positioner>
-        </Portal>
-      </Select.Root>
-
-      <div>
-        <Chart
-          originalData={sensorData}
-          dataKey={'temperature'}
-          selectedSensorIds={sensorSelectorValue.map((stringId) =>
-            Number(stringId)
-          )}
-        />
-      </div>
-      <h2>Humidity</h2>
-      <div>
-        <Chart
-          originalData={sensorData}
-          dataKey={'humidity'}
-          selectedSensorIds={sensorSelectorValue.map((stringId) =>
-            Number(stringId)
-          )}
-        />
-      </div>
     </div>
   )
 }
