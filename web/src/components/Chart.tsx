@@ -8,6 +8,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import {
+  NameType,
+  ValueType,
+} from 'recharts/types/component/DefaultTooltipContent'
 import { SensorData } from '../services/api'
 
 const Chart = ({
@@ -121,7 +125,18 @@ const Chart = ({
             }}
           />
           <YAxis domain={[0, 25]} />
-          <Tooltip />
+          <Tooltip
+            labelFormatter={() => ''}
+            formatter={(
+              value: ValueType | undefined,
+              name: NameType | undefined
+            ) => {
+              if (typeof value === 'number') {
+                return [value.toFixed(2), name]
+              }
+              return [value, name]
+            }}
+          />
           {/* Place the range selector brush below the rotated time labels. */}
           <Brush dataKey="timestamp" height={40} y={460} />
           {allSensorIds.map((sensorId, index) => (
