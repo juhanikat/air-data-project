@@ -3,6 +3,7 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -12,7 +13,7 @@ import {
   NameType,
   ValueType,
 } from 'recharts/types/component/DefaultTooltipContent'
-import { SensorData } from '../services/api'
+import { SensorData, SensorReading } from '../services/api'
 
 const Chart = ({
   originalData,
@@ -20,7 +21,7 @@ const Chart = ({
   selectedSensorIds,
 }: {
   originalData: SensorData[]
-  dataKey: string
+  dataKey: keyof SensorReading
   selectedSensorIds?: number[]
 }) => {
   const months = [
@@ -74,33 +75,33 @@ const Chart = ({
     .flatMap((sensorData) =>
       sensorData.results.map((reading) => ({
         ...reading,
-        id: sensorData.sensor.id,
         sensorKey: `sensor-${sensorData.sensor.id}`,
       }))
     )
     .toSorted((a, b) => a.timestamp - b.timestamp)
 
+  // AI generated code to make chart timestamps work, can probably be removed once backend gives all sensors identical timestamps
   const chartData = readingsWithIds.reduce<
     Array<Record<string, number | null | undefined>>
   >((points, reading) => {
     const existingPoint = points.at(-1)
 
     if (existingPoint?.timestamp === reading.timestamp) {
-      existingPoint[reading.sensorKey] = reading[
-        dataKey as keyof typeof reading
-      ] as number | null | undefined
+      existingPoint[reading.sensorKey] = reading[dataKey] as
+        | number
+        | null
+        | undefined
     } else {
       points.push({
         timestamp: reading.timestamp,
-        [reading.sensorKey]: reading[dataKey as keyof typeof reading] as
-          | number
-          | null
-          | undefined,
+        [reading.sensorKey]: reading[dataKey] as number | null | undefined,
       })
     }
 
     return points
   }, [])
+
+  console.log(chartData)
 
   return (
     <div>
@@ -124,6 +125,13 @@ const Chart = ({
             }}
           />
           <YAxis domain={[0, 25]} />
+          <ReferenceLine
+            x={data[0].results[100].timestamp}
+            stroke="red"
+            strokeDasharray={'3 3'}
+            label="testing referenceline"
+          />
+
           <Tooltip
             labelFormatter={() => ''}
             formatter={(
