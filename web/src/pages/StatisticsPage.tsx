@@ -16,6 +16,9 @@ const StatisticsPage = () => {
   // Currently displayed sensors
   const [sensorSelectorValue, setSensorSelectorValue] = useState<string[]>([])
 
+  // Sensor ID's that currently have their associated data loaded from the backend
+  const [loadedSensors, setLoadedSensors] = useState<string[]>([])
+
   // All sensors that the backend has
   const [sensorOptions, setSensorOptions] =
     useState<ListCollection<{ label: string; value: string }>>()
@@ -40,11 +43,11 @@ const StatisticsPage = () => {
 
   useEffect(() => {
     const getSensorData = async () => {
-      if (!sensorOptions) return
-      const allData: SensorData[] = []
-      for (const sensorOption of sensorOptions) {
+      if (sensorSelectorValue.length === 0) return
+      for (const selectedSensorId of sensorSelectorValue) {
+        if (loadedSensors.includes(selectedSensorId)) continue
         try {
-          const data = await api.query(Number(sensorOption.value), {
+          const data = await api.query(Number(selectedSensorId), {
             downsample: true,
             sampling_method: 'mean',
             sample_interval: 360, // one sample every 10 seconds, 360 * 10 = 1 hour
@@ -56,18 +59,20 @@ const StatisticsPage = () => {
             data.results as DownsampledSensorReading[],
             'mean'
           )
-          allData.push(data as SensorData)
+
+          setLoadedSensors(() => loadedSensors.concat([selectedSensorId]))
+          setSensorData(() => sensorData.concat(data as SensorData))
         } catch (err) {
           console.error(err)
           if (err instanceof Error) setLoadError(err.toString())
         }
       }
-      setSensorData(allData)
     }
     getSensorData()
-  }, [sensorOptions])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sensorSelectorValue])
 
-  if (sensorData.length === 0 || !sensorOptions) {
+  if (!sensorOptions) {
     return <LoadingScreen error={loadError} />
   }
 
@@ -94,6 +99,7 @@ const StatisticsPage = () => {
         collection={sensorOptions}
         value={sensorSelectorValue}
         onValueChange={(details) => {
+          details.items.sort((a, b) => Number(a.value) - Number(b.value))
           setSensorSelectorValue(details.items.map((item) => item.value))
         }}
       >

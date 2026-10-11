@@ -67,7 +67,6 @@ const Chart = ({
   if (selectedSensorIds) {
     data = data.filter((d) => selectedSensorIds.includes(d.sensor.id))
   }
-  if (data.length === 0) return
 
   const allSensorIds = data.map((sensorData) => sensorData.sensor.id)
 
