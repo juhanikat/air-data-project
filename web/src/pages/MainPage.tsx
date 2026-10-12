@@ -26,6 +26,7 @@ const MainPage = () => {
   }
 
   const sensorReadings = sensorData.flatMap((data) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { sensor, ...readingData } = data
     return readingData
   })
@@ -35,15 +36,6 @@ const MainPage = () => {
   const lastDataPoint = new Date(
     sensorReadings[sensorReadings.length - 1].timestamp * 1000
   )
-
-  // Calculate how many data points there are in a week
-  const pointsPerWeek =
-    sensorReadings.length > 1
-      ? Math.ceil(
-          (7 * 24 * 60 * 60) /
-            Math.abs(sensorReadings[0].timestamp - sensorReadings[1].timestamp)
-        )
-      : 1
 
   return (
     <div>

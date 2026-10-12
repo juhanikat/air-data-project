@@ -1,8 +1,13 @@
 from math import isnan
 import numpy as np
+import pandas as pd
+from time import time
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 from dataclasses import dataclass
-from typing import List, Literal, Optional
+from typing import List, Literal, Optional, TYPE_CHECKING
 from util.db_utils import MeasurementItemSingular
+if TYPE_CHECKING:
+    from util.context import Context
 
 
 @dataclass
@@ -47,27 +52,33 @@ class DownSampledMeasurementItemSingular:
         }
 
 
+# NOTE: interval is samples per second!
 def downSampleMeasurementsTo(
     items: List[MeasurementItemSingular],
     method: Literal["mean", "median", "min", "max"] | List[Literal["mean", "median", "min", "max"]],
-    interval: int = 360
+    interval: int = 3600
 ) -> List[DownSampledMeasurementItemSingular]:
     # Check interval limitation
     if interval < 1 or len(items) == 0:
         print(len(items) == 0, len(items) % interval)
         raise RuntimeError("Incompatible interval or no data")
 
+    # Determine samples per interval from the sampling rate
+    sample_interval = items[1].timestamp - items[0].timestamp
+    samples_per_interval = interval // sample_interval
+
     # Drop last incomplete interval
-    if len(items) % interval != 0:
-        usable_items_count = (len(items) // interval) * interval
+    if len(items) % samples_per_interval != 0:
+        usable_items_count = (len(items) // samples_per_interval) * samples_per_interval
         items = items[:usable_items_count]
 
-    # Prepare numpy data
+    # Prepare timestamps
     timestamps = np.fromiter(
         (item.timestamp for item in items),
         dtype=np.int64,
         count=len(items)
-    ).reshape(-1, interval)[:, 0]
+    ).reshape(-1, samples_per_interval)[:, 0]
+    timestamps = (timestamps // interval) * interval
 
     value_arrays = dict()
     ignore_keys = ("during_calibration", "timestamp")
@@ -84,7 +95,7 @@ def downSampleMeasurementsTo(
     result_arrays = dict()
     methods = [method] if isinstance(method, str) else method
     for value_key in value_arrays.keys():
-        reshaped = value_arrays[value_key].reshape(-1, interval)
+        reshaped = value_arrays[value_key].reshape(-1, samples_per_interval)
         result_arrays[value_key] = dict()
         if "mean" in methods:
             result_arrays[value_key]["mean"] = reshaped.mean(axis=1)
@@ -112,3 +123,66 @@ def downSampleMeasurementsTo(
         ))
 
     return results
+
+# MARK: The BEEF
+FORECASTING_TERMS = ["temperature", "humidity", "pressure", "PM10", "PM25", "PM40", "PM100", "CO2", "VOC", "NOx"]
+
+def forecast_dayahead_using_SARIMAX(context: "Context", sensor_id: int, term: str, day_count = 1):
+    if term not in FORECASTING_TERMS:
+        raise RuntimeError(f"Cannot forecast with term: '{term}'")
+
+    print("Performing forecast")
+
+    # Fetch our science data
+    with context.database.from_thread() as database:
+        sensor = database.get_sensor(sensor_id)
+        print("For", sensor)
+        if sensor is None:
+            raise RuntimeError("Unknown sensor")
+
+        hourly_mean_data = database.unsafe_get_science_hourly_mean(sensor_id, term, 0, int(time()))
+
+    print("Data in memory")
+
+    # Prepare our data
+    hourly_data = pd.DataFrame(
+        hourly_mean_data.items(),
+        columns=["timestamp", "value"]
+    )
+    hourly_data["timestamp"] = pd.to_datetime(
+        hourly_data["timestamp"],
+        unit="s",
+        utc=True
+    ).dt.tz_convert("Europe/Helsinki")
+    hourly_data = hourly_data.set_index("timestamp")
+    # NOTE: Discard initial data, this only applies to our project
+    #       Remove if upcycling!
+    hourly_data = hourly_data[
+        hourly_data.index >= pd.Timestamp("2026-09-22", tz="Europe/Helsinki")
+    ]
+    hourly_data = hourly_data.asfreq("h")
+
+
+    print("Data in proper format")
+
+    # Train the model
+    model = SARIMAX(
+        hourly_data["value"],
+        order=(2, 0, 0),
+        seasonal_order=(1, 0, 1, 24),
+        trend="c"
+    )
+
+    print("Training model")
+    model_fit = model.fit(maxiter=500)
+    print("mle intervals:", model_fit.mle_retvals) # type: ignore
+    
+    # Forecast
+    print("Conjuring the future")
+    predictions = model_fit.forecast(24 * day_count) # type: ignore
+    print(f"Forecast done ({len(predictions.keys())})")
+
+    return {
+        int(timestamp.timestamp()): float(value)
+        for timestamp, value in predictions.items()
+    }

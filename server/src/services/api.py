@@ -7,7 +7,7 @@ from flask_cors import CORS
 from random import randbytes
 from threading import Thread
 from werkzeug.security import check_password_hash
-from util.science import downSampleMeasurementsTo
+from util.science import downSampleMeasurementsTo, forecast_dayahead_using_SARIMAX, FORECASTING_TERMS
 from util.auth import refresh_session, requires_authentication
 if TYPE_CHECKING:
     from util.context import Context
@@ -64,7 +64,6 @@ class APIService():
         @self.app.route("/api/v1/latest")
         @refresh_session
         def latest():
-            # TODO: Authentication
             with context.database.from_thread() as database:
                 data = database.get_latest()
             return dumps(list(map(lambda item: item.to_dict(), data)), indent=4), 200, {
@@ -110,6 +109,38 @@ class APIService():
                 "sensor": sensor.to_dict(),
                 "downsampled": body["downsample"] == True,
                 "results": list(map(lambda item: item.to_dict(), items))
+            })
+
+
+        # MARK: /forecast/day-ahead/sarimax
+        # Create a day-ahead forecast based on historical data
+        @self.app.route("/api/v1/forecast/day-ahead/sarimax", methods=["POST"])
+        @requires_authentication
+        @refresh_session
+        def forecast_day_sarimax():
+            try:
+                body = request.get_json()
+            except Exception:
+                return "Expected application/json", 400
+
+            if "id" not in body or type(body["id"]) != int:
+                return "Key 'id' (sensor id) required", 400
+            if "term" not in body or type(body["term"]) != str or body["term"] not in FORECASTING_TERMS:
+                return f"Key 'term' ({" | ".join(FORECASTING_TERMS)}) required", 400
+            if "days" not in body or type(body["days"]) != int:
+                return f"Key 'days' as int required", 400
+
+            # Database fetch
+            with context.database.from_thread() as database:
+                sensor = database.get_sensor(body["id"])
+                if sensor is None:
+                    return dumps({ "sensor": None, "forecast": [] }, indent=4), 200
+
+            forecast = forecast_dayahead_using_SARIMAX(context, sensor.id, body["term"], body["days"])
+
+            return dumps({
+                "sensor": sensor.to_dict(),
+                "forecast": [ { "timestamp": timestamp, (body["term"].lower()): forecast[timestamp] } for timestamp in sorted(forecast.keys()) ]
             })
 
         # MARK: /stats
@@ -228,7 +259,7 @@ class APIService():
                 if len(new_name) > 64 or len(new_location) > 64:
                     return "Name and location max length is 64 chars", 400
 
-                database.edit_sensor(sensor.id, new_name, new_location)
+                database.edit_sensor(sensor.id, new_location, new_name)
                 return "Edits performed", 200
         
 

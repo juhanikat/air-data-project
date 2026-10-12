@@ -3,7 +3,8 @@ from signal import signal, SIGINT, SIG_IGN, SIGTERM
 from util.context import Context
 from util.args import get_app_args
 from util.cli import cli
-
+from util.migrations import from_0_to_1
+from util.science import forecast_dayahead_using_SARIMAX
 
 def on_exit(context: Context):
     print("Closing down ...")
@@ -27,6 +28,7 @@ def main():
     try:
         # MARK: Database
         context.database.set_file(args.get("database") or "../data/main.db")
+        context.database._db.register_migration(0, 1, from_0_to_1) # TODO: Add service method to add migrations
         print(f"Opening SQLite database from '{context.database.file}'")
         context.database.open()
         context.database.enable_wal()

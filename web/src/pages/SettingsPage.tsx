@@ -1,54 +1,34 @@
 import { Sensor } from '../services/api'
-import { createListCollection, Flex, Listbox } from '@chakra-ui/react'
+import { useEffect, useState } from 'react'
+import api from "../services/api"
+import { SensorSettings } from '../components/SensorSettings'
+import { Heading, Stack, Text } from '@chakra-ui/react'
 
-type SensorListProps = {
-  sensors: Sensor[]
-}
-
-type LoginInfo = {
-  username: string
-  password: string
-}
-
-const SensorList: React.FC<SensorListProps> = ({ sensors }) => {
-  const sensorCollection = createListCollection({ items: sensors })
-
-  return (
-    <Listbox.Root collection={sensorCollection} maxWidth={'1/2'}>
-      <Listbox.Label>
-        Select a sensor to edit it (does not work yet)
-      </Listbox.Label>
-      <Listbox.Content>
-        {sensorCollection.items.map((sensor) => (
-          <Listbox.Item item={sensor} key={sensor.id}>
-            <Listbox.ItemText>{sensor.name}</Listbox.ItemText>
-            <Listbox.ItemIndicator />
-          </Listbox.Item>
-        ))}
-      </Listbox.Content>
-    </Listbox.Root>
-  )
-}
-const placeholderSensor: Sensor = {
-  id: 1,
-  name: 'Placeholder Sensor',
-  mac: '12345',
-  location: 'Gurula',
-}
 const SettingsPage = () => {
-  return (
-    <div>
-      <Flex direction={'row'} gap={'10'} margin={'5'}>
-        <SensorList
-          sensors={[
-            placeholderSensor,
-            { ...placeholderSensor, id: 2 },
-            { ...placeholderSensor, id: 3 },
-          ]}
+    const [sensors, setSensors] = useState<Sensor[]>()
+    useEffect(() => {
+        (async () => {
+            const liveSensors = await api.getAllSensors()
+            console.log(sensors)
+            setSensors(liveSensors)
+        })();
+    }, [])
+
+    return <Stack mb={5}>
+        <Heading size="xl">Settings</Heading>
+        <Text mb={4}>Edit metadata for each sensor.</Text>
+        <SensorSettings
+            sensors={sensors ?? []}
+            onSave={(sensor) => {
+                api.editSensor(sensor)
+                    .then(async () => {
+                        const liveSensors = await api.getAllSensors()
+                        console.log(sensors)
+                        setSensors(liveSensors)
+                    })
+            }}
         />
-      </Flex>
-    </div>
-  )
+    </Stack>
 }
 
 export default SettingsPage

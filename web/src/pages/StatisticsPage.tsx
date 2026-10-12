@@ -1,27 +1,39 @@
 import {
   createListCollection,
+  Heading,
   ListCollection,
   Portal,
   Select,
+  Stack,
+  Text,
 } from '@chakra-ui/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Chart from '../components/Chart'
 import { LoadingScreen } from '../components/LoadingScreen'
 import api, { DownsampledSensorReading, SensorData } from '../services/api'
 
+const INTERVAL = 14 * 24 * 60 * 60 // 2 weeks
+
+const formatTemperature = (value: number) => `${value}°C`
+const formatHumidity = (value: number) => `${value}%`
+const formatPressure = (value: number) => `${value} Pa`
+const formatParticles = (value: number) => `${value} μg/m³`
+const formatCO2 = (value: number) => `${value} ppm`
+
 const StatisticsPage = () => {
   const [sensorData, setSensorData] = useState<SensorData[]>([])
-  const [loadError, setLoadError] = useState<string | undefined>()
+  const [loadError, setLoadError] = useState<string>()
 
-  // Currently displayed sensors
   const [sensorSelectorValue, setSensorSelectorValue] = useState<string[]>([])
-
-  // Sensor ID's that currently have their associated data loaded from the backend
   const [loadedSensors, setLoadedSensors] = useState<string[]>([])
 
-  // All sensors that the backend has
   const [sensorOptions, setSensorOptions] =
     useState<ListCollection<{ label: string; value: string }>>()
+
+  const selectedSensorIds = useMemo(
+    () => sensorSelectorValue.map(Number),
+    [sensorSelectorValue]
+  )
 
   useEffect(() => {
     api.getAllSensors().then((data) => {
@@ -31,84 +43,94 @@ const StatisticsPage = () => {
           value: String(sensor.id),
         })),
       }
-      const listCollection = createListCollection(sensorItems)
-      setSensorOptions(listCollection)
 
-      // show sensor with ID 1 by default, if it exists
+      setSensorOptions(createListCollection(sensorItems))
+
       setSensorSelectorValue(
-        sensorItems.items.find((item) => item.value === '1') ? ['1'] : []
+        sensorItems.items.some((item) => item.value === '1')
+          ? ['1']
+          : []
       )
     })
   }, [])
 
   useEffect(() => {
     const getSensorData = async () => {
-      if (sensorSelectorValue.length === 0) return
-      for (const selectedSensorId of sensorSelectorValue) {
-        if (loadedSensors.includes(selectedSensorId)) continue
+      const sensorsToLoad = sensorSelectorValue.filter(
+        (id) => !loadedSensors.includes(id)
+      )
+
+      if (sensorsToLoad.length === 0) return
+
+      for (const selectedSensorId of sensorsToLoad) {
         try {
+          const now = Math.floor(Date.now() / 1000)
+
           const data = await api.query(Number(selectedSensorId), {
             downsample: true,
             sampling_method: 'mean',
-            sample_interval: 360, // one sample every 10 seconds, 360 * 10 = 1 hour
-            start: 0, // All data!
+            sample_interval: 3600,
+            start: now - INTERVAL,
           })
 
-          // Format data to be just the values without "mean" key
           data.results = api.toSensorReadings(
             data.results as DownsampledSensorReading[],
             'mean'
           )
 
-          setLoadedSensors(() => loadedSensors.concat([selectedSensorId]))
-          setSensorData(() => sensorData.concat(data as SensorData))
+          setLoadedSensors((current) => [
+            ...current,
+            selectedSensorId,
+          ])
+
+          setSensorData((current) => [
+            ...current,
+            data as SensorData,
+          ])
         } catch (err) {
           console.error(err)
-          if (err instanceof Error) setLoadError(err.toString())
+
+          if (err instanceof Error) {
+            setLoadError(err.toString())
+          }
         }
       }
     }
+
     getSensorData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sensorSelectorValue])
+  }, [sensorSelectorValue, loadedSensors])
 
-  if (!sensorOptions) {
-    return <LoadingScreen error={loadError} />
-  }
-
-  const sensorReadings = sensorData.flatMap((data) => data.results)
-  if (sensorReadings.length === 0) return
-
-  const lastIndex = sensorReadings.length - 1
-  const lastDataPoint = new Date(
-    sensorReadings[sensorReadings.length - 1].timestamp * 1000
+  const hasSensorReadings = sensorData.some(
+    (data) => data.results.length > 0
   )
 
-  // Calculate how many data points there are in a week
-  const pointsPerWeek =
-    sensorReadings.length > 1
-      ? Math.ceil(
-          (7 * 24 * 60 * 60) /
-            Math.abs(sensorReadings[0].timestamp - sensorReadings[1].timestamp)
-        )
-      : 1
+  if (!hasSensorReadings) return null
+
   return (
     <div>
+      <Heading size="xl">Last 2 weeks</Heading>
+      <Text mb={4}>Explore historical sensor data.</Text>
+
       <Select.Root
-        multiple={true}
+        multiple
         collection={sensorOptions}
         value={sensorSelectorValue}
         onValueChange={(details) => {
-          details.items.sort((a, b) => Number(a.value) - Number(b.value))
-          setSensorSelectorValue(details.items.map((item) => item.value))
+          const ids = details.items
+            .map((item) => item.value)
+            .sort((a, b) => Number(a) - Number(b))
+
+          setSensorSelectorValue(ids)
         }}
       >
         <Select.Label>Select sensors to display</Select.Label>
+
         <Select.Control>
           <Select.Trigger>
-            <Select.ValueText placeholder="Select framework" />
+            <Select.ValueText placeholder="Select sensors" />
           </Select.Trigger>
         </Select.Control>
+
         <Portal>
           <Select.Positioner>
             <Select.Content>
@@ -123,86 +145,79 @@ const StatisticsPage = () => {
         </Portal>
       </Select.Root>
 
-      <Chart
-        title={'Temperature'}
-        originalData={sensorData}
-        dataKey={'temperature'}
-        selectedSensorIds={sensorSelectorValue.map((stringId) =>
-          Number(stringId)
-        )}
-        yAxisTickFormatter={(value: number) => String(value) + `°C`}
-      />
+      {
+        sensorData?.length > 0 ? <Stack gap={3} mt={4}>
+          <Chart
+            title="Temperature"
+            originalData={sensorData}
+            dataKey="temperature"
+            selectedSensorIds={selectedSensorIds}
+            yAxisTickFormatter={formatTemperature}
+          />
 
-      <Chart
-        title={'Humidity'}
-        originalData={sensorData}
-        dataKey={'humidity'}
-        selectedSensorIds={sensorSelectorValue.map((stringId) =>
-          Number(stringId)
-        )}
-        yAxisTickFormatter={(value: number) => String(value) + `%`}
-      />
-      <Chart
-        title={'Pressure'}
-        originalData={sensorData}
-        dataKey={'pressure'}
-        selectedSensorIds={sensorSelectorValue.map((stringId) =>
-          Number(stringId)
-        )}
-        yAxisTickFormatter={(value: number) => String(value) + ` Pa`}
-      />
-      <Chart
-        title={'PM1'}
-        originalData={sensorData}
-        dataKey={'pm10'}
-        selectedSensorIds={sensorSelectorValue.map((stringId) =>
-          Number(stringId)
-        )}
-        yAxisTickFormatter={(value: number) => String(value) + ` μg/m^3`}
-      />
-      <Chart
-        title={'PM2.5'}
-        originalData={sensorData}
-        dataKey={'pm25'}
-        selectedSensorIds={sensorSelectorValue.map((stringId) =>
-          Number(stringId)
-        )}
-        yAxisTickFormatter={(value: number) => String(value) + ` μg/m^3`}
-      />
-      <Chart
-        title={'PM10'}
-        originalData={sensorData}
-        dataKey={'pm100'}
-        selectedSensorIds={sensorSelectorValue.map((stringId) =>
-          Number(stringId)
-        )}
-        yAxisTickFormatter={(value: number) => String(value) + ` μg/m^3`}
-      />
-      <Chart
-        title={'CO2'}
-        originalData={sensorData}
-        dataKey={'co2'}
-        selectedSensorIds={sensorSelectorValue.map((stringId) =>
-          Number(stringId)
-        )}
-        yAxisTickFormatter={(value: number) => String(value) + ` ppm`}
-      />
-      <Chart
-        title={'Volatile organic compounds index (VOC)'}
-        originalData={sensorData}
-        dataKey={'voc'}
-        selectedSensorIds={sensorSelectorValue.map((stringId) =>
-          Number(stringId)
-        )}
-      />
-      <Chart
-        title={'Nitrogen oxides index (NOx)'}
-        originalData={sensorData}
-        dataKey={'nox'}
-        selectedSensorIds={sensorSelectorValue.map((stringId) =>
-          Number(stringId)
-        )}
-      />
+          <Chart
+            title="Humidity"
+            originalData={sensorData}
+            dataKey="humidity"
+            selectedSensorIds={selectedSensorIds}
+            yAxisTickFormatter={formatHumidity}
+          />
+
+          <Chart
+            title="Pressure"
+            originalData={sensorData}
+            dataKey="pressure"
+            selectedSensorIds={selectedSensorIds}
+            yAxisTickFormatter={formatPressure}
+          />
+
+          <Chart
+            title="PM1"
+            originalData={sensorData}
+            dataKey="pm10"
+            selectedSensorIds={selectedSensorIds}
+            yAxisTickFormatter={formatParticles}
+          />
+
+          <Chart
+            title="PM2.5"
+            originalData={sensorData}
+            dataKey="pm25"
+            selectedSensorIds={selectedSensorIds}
+            yAxisTickFormatter={formatParticles}
+          />
+
+          <Chart
+            title="PM10"
+            originalData={sensorData}
+            dataKey="pm100"
+            selectedSensorIds={selectedSensorIds}
+            yAxisTickFormatter={formatParticles}
+          />
+
+          <Chart
+            title="CO2"
+            originalData={sensorData}
+            dataKey="co2"
+            selectedSensorIds={selectedSensorIds}
+            yAxisTickFormatter={formatCO2}
+          />
+
+          <Chart
+            title="Volatile organic compounds index (VOC)"
+            originalData={sensorData}
+            dataKey="voc"
+            selectedSensorIds={selectedSensorIds}
+          />
+
+          <Chart
+            title="Nitrogen oxides index (NOx)"
+            originalData={sensorData}
+            dataKey="nox"
+            selectedSensorIds={selectedSensorIds}
+          />
+        </Stack> : <LoadingScreen error={loadError} />
+      }
     </div>
   )
 }

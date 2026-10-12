@@ -3,6 +3,9 @@ if TYPE_CHECKING:
     from util.context import Context
 from util.mqtt_client import MQTTClient
 from threading import Thread
+from time import time
+from traceback import format_exception
+from util.science import downSampleMeasurementsTo
 
 class MQTTClientService:
     thread: Thread | None
@@ -92,6 +95,30 @@ class MQTTClientService:
                 database.insert_measurement(sensor.id, *values)
                 print(f"Measurement recorded (for {sensor_mac} aka. {sensor.id})")
 
+            # MARK: Science
+            # Check if there's a mean for the last full hour
+            last_hour = (int(time()) // 3600) * 3600 - 3600
+            with context.database.from_thread() as database:
+                try:
+                    last_mean_entry = database.get_last_science_hourly_mean(sensor.id)
+                    if not last_mean_entry or last_hour != last_mean_entry.timestamp:
+                        print("Time to create science data!")
+                        # Create mean entry for the last hour
+                        _, items = database.get_historical(sensor.id, last_hour, last_hour + 3600 + 1)
+                        items = downSampleMeasurementsTo(items, "mean", 3600)
+                        item = items[0]
+                        if not item:
+                            print("ERROR: Failed to generate mean for last hour for science table for sensor", sensor.id, "reason: no data")
+                        else:
+                            database.insert_science_hourly_mean(
+                                sensor.id, item.timestamp, item.temperature.mean, item.humidity.mean,
+                                item.pressure.mean, item.pm10.mean, item.pm25.mean, item.pm40.mean,
+                                item.pm100.mean, item.co2.mean, item.voc.mean, item.nox.mean
+                            )
+                            print(f"Generated science data for {sensor.id} index {last_hour}")
+                except Exception as e:
+                    print("ERROR: Failed to generate mean for last hour for science table for sensor", sensor.id, "reason:", *format_exception(e))
+                    
 
     def listen(self, address: str, port: int, username: Optional[str], password: Optional[str]):
         def _listen():

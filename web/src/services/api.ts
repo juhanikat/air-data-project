@@ -1,7 +1,7 @@
 function getBaseURL() {
   // @ts-expect-error We can safely check
-  if (import.meta.env?.DEV) return 'http://localhost:9001'
-  return 'http://icetea.esinko.net:9001'
+  if (import.meta.env?.DEV) return "http://localhost:9001"
+  return "http://icetea.esinko.net:9001"
 }
 
 export interface Sensor {
@@ -13,16 +13,16 @@ export interface Sensor {
 
 export interface SensorReading {
   timestamp: number
-  temperature: number | null
-  humidity: number | null
-  pressure: number | null
-  pm10: number | null
-  pm25: number | null
-  pm40: number | null
-  pm100: number | null
-  co2: number | null
-  voc: number | null
-  nox: number | null
+  temperature: number | null | undefined
+  humidity: number | null | undefined
+  pressure: number | null | undefined
+  pm10: number | null | undefined
+  pm25: number | null | undefined
+  pm40: number | null | undefined
+  pm100: number | null | undefined
+  co2: number | null | undefined
+  voc: number | null | undefined
+  nox: number | null | undefined
   during_calibration: boolean
 }
 
@@ -39,7 +39,7 @@ type QueryIntervalOptions =
   | { start: number; end?: number }
   | { start?: number; end: number }
 
-type QueryDownSamplingMethod = 'mean' | 'average' | 'min' | 'max'
+type QueryDownSamplingMethod = "mean" | "average" | "min" | "max"
 
 type QueryDownSampleOptions =
   | {
@@ -89,6 +89,12 @@ export interface QueryResponse {
   downsample: boolean | undefined
 }
 
+export interface ForecastResponse {
+  sensor: Sensor
+  forecast: SensorReading[]
+  downsample: boolean | undefined
+}
+
 export type SensorsResponse = Sensor[]
 
 export interface SensorData {
@@ -107,20 +113,36 @@ async function query(
   options: QueryOptions
 ): Promise<QueryResponse> {
   const res = await fetch(`${getBaseURL()}/api/v1/query`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({ id, ...options }),
   })
   return await res.json()
 }
 
+async function forecastDaysAhead(
+  id: number,
+  term: string,
+  days: number = 1
+): Promise<ForecastResponse> {
+  const res = await fetch(`${getBaseURL()}/api/v1/forecast/day-ahead/sarimax`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ id, term, days }),
+    credentials: "include"
+  })
+  return await res.json()
+}
+
 async function getAllSensors(): Promise<SensorsResponse> {
   const res = await fetch(`${getBaseURL()}/api/v1/sensors`, {
-    method: 'GET',
+    method: "GET",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   })
   return await res.json()
@@ -143,7 +165,7 @@ function toSensorReadings(
 
 async function getMe(): Promise<User | undefined> {
   const res = await fetch(`${getBaseURL()}/api/v1/me`, {
-    credentials: 'include',
+    credentials: "include",
   })
   if (res.status !== 200) return undefined
   return await res.json()
@@ -154,10 +176,10 @@ async function login(
   password: string
 ): Promise<User | undefined> {
   const res = await fetch(`${getBaseURL()}/api/v1/login`, {
-    method: 'POST',
-    credentials: 'include',
+    method: "POST",
+    credentials: "include",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       username,
@@ -169,8 +191,23 @@ async function login(
 }
 
 async function logout() {
-  await fetch(`${getBaseURL()}/api/v1/logout`, { credentials: 'include' })
+  await fetch(`${getBaseURL()}/api/v1/logout`, { credentials: "include" })
 }
+
+async function editSensor(sensor: Sensor): Promise<void> {
+  const res = await fetch(`${getBaseURL()}/api/v1/edit-sensor`, {
+    credentials: "include",
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      id: sensor.id, name: sensor.name, location: sensor.location
+    })
+  })
+  if (res.status !== 200) throw new Error("Editing failed")
+}
+
 
 export default {
   getLatest,
@@ -181,4 +218,6 @@ export default {
   getMe,
   login,
   logout,
+  forecastDaysAhead,
+  editSensor
 }

@@ -1,14 +1,18 @@
 from sqlite3 import Error, connect, Connection, Cursor
 from pathlib import Path
-from typing import Any, List, Optional, Tuple, Union, Dict
+from typing import Any, List, Optional, Tuple, Union, Dict, Callable, Self
 from dataclasses import dataclass
 
 class DatabaseConnection:
+    VERSION = 1
+    migrations: dict[int, Callable[[], None]]
+
     def __init__(self, database = "./main.db", schema="./schema.sql", init="./init.sql"):
         self.database_filepath = database
         self.schema_filepath = schema
         self.init_filepath = init
         self.connection = None
+        self.migrations = dict()
 
 
     def open(self):
@@ -29,11 +33,16 @@ class DatabaseConnection:
             init = init_file.read_text("utf-8")
             self.connection.executescript(init)
             self.connection.commit()
+            self._set_user_version(self.VERSION)
         else:
             self.connection = connect(database_file, timeout=10)
 
         # Enforce foreign keys
         self.connection.execute("PRAGMA foreign_keys = ON;")
+
+        # Force migrations
+        self._migrate()
+
         return self
 
 
@@ -82,6 +91,60 @@ class DatabaseConnection:
             print("Database execution error:", e, "For:",
                   query, "With params:", parameters)
             raise DatabaseException("Halting due to error. See above logs.")
+
+
+    def get_user_version(self) -> int:
+        if not self.connection:
+            raise DatabaseException("Database not open!")
+                
+        try:
+            cursor = self.connection.cursor()
+            return int(cursor.execute("PRAGMA user_version").fetchone()[0])
+        except Error as err:
+            print("Database execution error when getting version:", err)
+            raise DatabaseException("Halting due to error. See above logs.")
+
+
+    def _set_user_version(self, version: int):
+        # NOTE: This is SQLi if misused :D
+        self.execute(f"PRAGMA user_version = {int(version)};", dict())
+
+
+    def register_migration(self, from_version: int, to_version: int, method: Callable[[Self], None]):
+        def mig():
+            method(self)
+            self._set_user_version(to_version)
+
+
+        self.migrations[from_version] = mig
+
+
+    def _migrate(self):
+        original_version = self.get_user_version()
+        if original_version == self.VERSION:
+            return
+
+        print(f"Database requires migrations ({original_version} -> {self.VERSION})")
+
+        # Perform migrations sequentially 
+        def loop(version: int):
+            if version not in self.migrations:
+                # NOTE: If you get this, you are either missing a migration
+                #       or you are running migrations from the wrong thread.
+                #       Always create one connection in the main thread first before creating others.
+                raise RuntimeError(f"Migration for version '{version}' not registered and database version is '{self.VERSION}'")
+
+            print(f"Running migration {version}")
+            self.migrations[version]()
+            version_after_migrate = self.get_user_version()
+            print("Database migrated to", version_after_migrate)
+            if version_after_migrate != self.VERSION:
+                print("Continuing migrations")
+                loop(version_after_migrate)
+            else:
+                print(f"Database migrations done ({original_version} -> {self.VERSION})")
+
+        loop(original_version)
 
 
 class DatabaseException(Exception):
@@ -203,6 +266,23 @@ class MeasurementItemSingular:
             "nox": self.nox,
             "during_calibration": self.during_calibration
         }
+
+
+@dataclass
+class MeasurementItemScienceSingular:
+    sensor_id: int
+    timestamp: int
+    temperature: float
+    humidity: float
+    pressure: float
+    pm10: float
+    pm25: float
+    pm40: float
+    pm100: float
+    co2: float
+    voc: float
+    nox: float
+
 
 @dataclass
 class User:

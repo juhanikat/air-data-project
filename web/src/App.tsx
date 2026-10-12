@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage'
 import MainPage from './pages/MainPage'
 import SettingsPage from './pages/SettingsPage'
 import StatisticsPage from './pages/StatisticsPage'
+import ForecastPage from "./pages/ForecastPage"
 import api, { User } from './services/api'
 
 const App = () => {
@@ -26,11 +27,11 @@ const App = () => {
   return (
     <Container pt={2}>
       <Header setPage={setPage} user={user} />
-      <Tabs.Root value={page} onValueChange={({ value }) => setPage(value)}>
+      <Tabs.Root value={page} onValueChange={({ value }) => setPage(value)} lazyMount unmountOnExit>
         <Tabs.List>
           <Tabs.Trigger value="mainPage">Home</Tabs.Trigger>
           <Tabs.Trigger value="statisticsPage">Statistics</Tabs.Trigger>
-          <Tabs.Trigger value="">Forecast</Tabs.Trigger>
+          <Tabs.Trigger value="forecastPage">Forecast</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="mainPage">
           <MainPage />
@@ -56,6 +57,9 @@ const App = () => {
               setPage('mainPage')
             }}
           />
+        </Tabs.Content>
+        <Tabs.Content value="forecastPage">
+          <ForecastPage user={user}/>
         </Tabs.Content>
       </Tabs.Root>
     </Container>

@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 from time import time
 from contextlib import contextmanager
 from collections.abc import Generator
@@ -7,11 +7,11 @@ from random import randbytes
 from util.db_utils import (
     DatabaseConnection, SensorItem, MeasurementItemFull,
     MeasurementItemSingular, MeasurementStatistic, GatewayEvent,
-    User
+    User, MeasurementItemScienceSingular
 )
 
 class DatabaseService():
-    _connection: DatabaseConnection
+    _db: DatabaseConnection
     is_open: bool
     file: str
 
@@ -152,7 +152,7 @@ class DatabaseService():
         latest = []
         for sensor in sensors:
             rows = self._db.query(
-                f"SELECT {", ".join(keys)} FROM Measurements WHERE sensor_id = ? ORDER BY measurement_timestamp DESC",
+                f"SELECT {", ".join(keys)} FROM Measurements WHERE sensor_id = ? ORDER BY measurement_timestamp DESC LIMIT 1;",
                 parameters=(sensor.id,),
                 limit=1
             )
@@ -256,6 +256,76 @@ class DatabaseService():
                 NOx
             )
         )
+
+
+    # MARK: Science
+    def _get_hourly_series_index(self, timestamp: int) -> int:
+        return int(timestamp // 3600)
+
+
+    def insert_science_hourly_mean(
+        self,
+        sensor_id: int,
+        timestamp: int,
+        temperature: float | None,
+        humidity: float | None,
+        pressure: float | None,
+        PM10: float | None,
+        PM25: float | None,
+        PM40: float | None,
+        PM100: float | None,
+        CO2: float | None,
+        VOC: float | None,
+        NOx: float | None
+    ):
+        series_index = self._get_hourly_series_index(timestamp)
+        self._db.execute("""
+            INSERT INTO ScienceHourlyMeanMeasurements (
+                series_index,
+                sensor_id,
+                timestamp,
+                temperature,
+                humidity,
+                pressure,
+                PM10,
+                PM25,
+                PM40,
+                PM100,
+                CO2,
+                VOC,
+                NOx
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """, (
+            series_index,
+            sensor_id,
+            timestamp,
+            temperature,
+            humidity,
+            pressure,
+            PM10,
+            PM25,
+            PM40,
+            PM100,
+            CO2,
+            VOC,
+            NOx
+        ))
+
+
+    def unsafe_get_science_hourly_mean(self, sensor_id: int, column: str, start: int, end: int) -> Dict[int, int]:
+        rows = self._db.query(f"SELECT timestamp, {column} FROM ScienceHourlyMeanMeasurements WHERE sensor_id = ? AND timestamp > ? AND timestamp < ? ORDER BY timestamp;",
+                              (sensor_id, start, end))
+
+        return { row[0]: row[1] for row in rows }
+
+
+    def get_last_science_hourly_mean(self, sensor_id: int) -> MeasurementItemScienceSingular | None:
+        rows = self._db.query(f"SELECT timestamp, temperature, humidity, pressure, pm10, pm25, pm40, pm100, co2, voc, nox FROM ScienceHourlyMeanMeasurements WHERE sensor_id = ? ORDER BY timestamp;",
+                              (sensor_id,))
+        if len(rows) == 0:
+            return None
+
+        return MeasurementItemScienceSingular(sensor_id, *rows[0])
 
 
     # MARK: User stuff
