@@ -16,13 +16,17 @@ import {
 import { SensorData, SensorReading } from '../services/api'
 
 const Chart = ({
+  title,
   originalData,
   dataKey,
   selectedSensorIds,
+  yAxisTickFormatter,
 }: {
+  title?: string
   originalData: SensorData[]
   dataKey: keyof SensorReading
   selectedSensorIds?: number[]
+  yAxisTickFormatter?: (value: number) => string
 }) => {
   const months = [
     'January',
@@ -61,6 +65,7 @@ const Chart = ({
         }
       }
     }
+    console.log([minimum.timestamp, maximum.timestamp])
     return [minimum.timestamp, maximum.timestamp]
   }
 
@@ -101,11 +106,10 @@ const Chart = ({
     return points
   }, [])
 
-  console.log(chartData)
-
   return (
-    <div>
-      <ResponsiveContainer width="100%" height={500}>
+    <div style={{ width: '100%', height: 500 }}>
+      <h2>{title ?? ''}</h2>
+      <ResponsiveContainer>
         <LineChart
           data={chartData}
           margin={{ top: 5, right: 20, left: 10, bottom: 120 }}
@@ -113,18 +117,18 @@ const Chart = ({
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="timestamp"
-            domain={findXAxisDomain()}
+            domain={[0, 1]}
             angle={-45}
             textAnchor="end"
             interval="preserveStart"
-            tickFormatter={(value: number, index) => {
+            tickFormatter={(value: number) => {
               const date = new Date(value * 1000)
               return `${
                 months[date.getUTCMonth()]
               } ${date.getUTCDay()}, ${date.getUTCHours()}:${date.getUTCMinutes()}`
             }}
           />
-          <YAxis domain={[0, 25]} />
+          <YAxis domain={[0, 'auto']} tickFormatter={yAxisTickFormatter} />
           <ReferenceLine
             x={data[0].results[100].timestamp}
             stroke="red"
@@ -134,17 +138,12 @@ const Chart = ({
 
           <Tooltip
             labelFormatter={() => ''}
-            formatter={(
-              value: ValueType | undefined,
-              name: NameType | undefined
-            ) => {
-              if (typeof value === 'number') {
-                return [value.toFixed(2), name]
-              }
-              return [value, name]
+            formatter={(value: ValueType | undefined) => {
+              if (typeof value !== 'number') return value
+              else if (!yAxisTickFormatter) return value.toFixed(2)
+              return yAxisTickFormatter(+value.toFixed(2)) // weird javascript trick to convert string back to number
             }}
           />
-          {/* Place the range selector brush below the rotated time labels. */}
           <Brush dataKey="timestamp" height={40} y={460} />
           {allSensorIds.map((sensorId, index) => (
             <Line

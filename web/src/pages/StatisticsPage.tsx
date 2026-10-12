@@ -123,19 +123,82 @@ const StatisticsPage = () => {
         </Portal>
       </Select.Root>
 
-      <h2>Temperature</h2>
       <Chart
+        title={'Temperature'}
         originalData={sensorData}
         dataKey={'temperature'}
         selectedSensorIds={sensorSelectorValue.map((stringId) =>
           Number(stringId)
         )}
+        yAxisTickFormatter={(value: number) => String(value) + `°C`}
       />
 
-      <h2>Humidity</h2>
       <Chart
+        title={'Humidity'}
         originalData={sensorData}
         dataKey={'humidity'}
+        selectedSensorIds={sensorSelectorValue.map((stringId) =>
+          Number(stringId)
+        )}
+        yAxisTickFormatter={(value: number) => String(value) + `%`}
+      />
+      <Chart
+        title={'Pressure'}
+        originalData={sensorData}
+        dataKey={'pressure'}
+        selectedSensorIds={sensorSelectorValue.map((stringId) =>
+          Number(stringId)
+        )}
+        yAxisTickFormatter={(value: number) => String(value) + ` Pa`}
+      />
+      <Chart
+        title={'PM1'}
+        originalData={sensorData}
+        dataKey={'pm10'}
+        selectedSensorIds={sensorSelectorValue.map((stringId) =>
+          Number(stringId)
+        )}
+        yAxisTickFormatter={(value: number) => String(value) + ` μg/m^3`}
+      />
+      <Chart
+        title={'PM2.5'}
+        originalData={sensorData}
+        dataKey={'pm25'}
+        selectedSensorIds={sensorSelectorValue.map((stringId) =>
+          Number(stringId)
+        )}
+        yAxisTickFormatter={(value: number) => String(value) + ` μg/m^3`}
+      />
+      <Chart
+        title={'PM10'}
+        originalData={sensorData}
+        dataKey={'pm100'}
+        selectedSensorIds={sensorSelectorValue.map((stringId) =>
+          Number(stringId)
+        )}
+        yAxisTickFormatter={(value: number) => String(value) + ` μg/m^3`}
+      />
+      <Chart
+        title={'CO2'}
+        originalData={sensorData}
+        dataKey={'co2'}
+        selectedSensorIds={sensorSelectorValue.map((stringId) =>
+          Number(stringId)
+        )}
+        yAxisTickFormatter={(value: number) => String(value) + ` ppm`}
+      />
+      <Chart
+        title={'Volatile organic compounds index (VOC)'}
+        originalData={sensorData}
+        dataKey={'voc'}
+        selectedSensorIds={sensorSelectorValue.map((stringId) =>
+          Number(stringId)
+        )}
+      />
+      <Chart
+        title={'Nitrogen oxides index (NOx)'}
+        originalData={sensorData}
+        dataKey={'nox'}
         selectedSensorIds={sensorSelectorValue.map((stringId) =>
           Number(stringId)
         )}
