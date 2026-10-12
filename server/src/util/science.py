@@ -52,7 +52,7 @@ class DownSampledMeasurementItemSingular:
         }
 
 
-# NOTE: interval is samples per second!
+# NOTE: interval is in second!
 def downSampleMeasurementsTo(
     items: List[MeasurementItemSingular],
     method: Literal["mean", "median", "min", "max"] | List[Literal["mean", "median", "min", "max"]],
@@ -60,25 +60,15 @@ def downSampleMeasurementsTo(
 ) -> List[DownSampledMeasurementItemSingular]:
     # Check interval limitation
     if interval < 1 or len(items) == 0:
-        print(len(items) == 0, len(items) % interval)
         raise RuntimeError("Incompatible interval or no data")
 
-    # Determine samples per interval from the sampling rate
-    sample_interval = items[1].timestamp - items[0].timestamp
-    samples_per_interval = interval // sample_interval
-
-    # Drop last incomplete interval
-    if len(items) % samples_per_interval != 0:
-        usable_items_count = (len(items) // samples_per_interval) * samples_per_interval
-        items = items[:usable_items_count]
-
-    # Prepare timestamps
-    timestamps = np.fromiter(
-        (item.timestamp for item in items),
+   # Determine interval for each item based on timestamp
+    bucket_timestamps = np.fromiter(
+        ((item.timestamp // interval) * interval for item in items),
         dtype=np.int64,
         count=len(items)
-    ).reshape(-1, samples_per_interval)[:, 0]
-    timestamps = (timestamps // interval) * interval
+    )
+    timestamps = np.unique(bucket_timestamps)
 
     value_arrays = dict()
     ignore_keys = ("during_calibration", "timestamp")
@@ -95,16 +85,30 @@ def downSampleMeasurementsTo(
     result_arrays = dict()
     methods = [method] if isinstance(method, str) else method
     for value_key in value_arrays.keys():
-        reshaped = value_arrays[value_key].reshape(-1, samples_per_interval)
         result_arrays[value_key] = dict()
         if "mean" in methods:
-            result_arrays[value_key]["mean"] = reshaped.mean(axis=1)
+            result_arrays[value_key]["mean"] = np.array([
+                value_arrays[value_key][bucket_timestamps == timestamp].mean()
+                for timestamp in timestamps
+            ])
+
         if "median" in methods:
-            result_arrays[value_key]["median"] = reshaped.median(axis=1)
+            result_arrays[value_key]["median"] = np.array([
+                np.median(value_arrays[value_key][bucket_timestamps == timestamp])
+                for timestamp in timestamps
+            ])
+
         if "min" in methods:
-            result_arrays[value_key]["min"] = reshaped.min(axis=1)
+            result_arrays[value_key]["min"] = np.array([
+                value_arrays[value_key][bucket_timestamps == timestamp].min()
+                for timestamp in timestamps
+            ])
+
         if "max" in methods:
-            result_arrays[value_key]["max"] = reshaped.max(axis=1)
+            result_arrays[value_key]["max"] = np.array([
+                value_arrays[value_key][bucket_timestamps == timestamp].max()
+                for timestamp in timestamps
+            ])
 
     # Return the data we wanted
     results: List[DownSampledMeasurementItemSingular] = []

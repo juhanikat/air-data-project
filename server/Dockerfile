@@ -9,16 +9,20 @@ RUN useradd --create-home --uid 10001 appuser \
     && chown -R appuser:appuser /app
 
 # Install dependencies (cache optimal)
-COPY pyproject.toml poetry.lock ./
+# NOTE: Can't include lockfile due to windows issues
+# TODO: Add lockfile back
+USER appuser
+COPY pyproject.toml ./
 RUN poetry install --only main --no-root --no-interaction --no-ansi
 
 # Copy app
 COPY . .
 
 # Compile
-RUN poetry run invoke build
+#RUN poetry run invoke build
 
 # Run as user
-USER appuser
 EXPOSE 9001
-CMD ["./out/air-data-server.bin", "--api-port=9001", "--api-address=0.0.0.0", "--mqtt-address=mosquitto", "--mqtt-port=9003", "--database=./data/main.db"]
+
+#CMD ["./out/air-data-server.bin", "--api-port=9001", "--api-address=0.0.0.0", "--mqtt-address=mosquitto", "--mqtt-port=9003", "--database=./data/main.db"]
+CMD ["poetry", "run", "python", "./src/main.py", "--api-port=9001", "--api-address=0.0.0.0", "--mqtt-address=mosquitto", "--mqtt-port=9003", "--database=./data/main.db"]

@@ -320,7 +320,7 @@ class DatabaseService():
 
 
     def get_last_science_hourly_mean(self, sensor_id: int) -> MeasurementItemScienceSingular | None:
-        rows = self._db.query(f"SELECT timestamp, temperature, humidity, pressure, pm10, pm25, pm40, pm100, co2, voc, nox FROM ScienceHourlyMeanMeasurements WHERE sensor_id = ? ORDER BY timestamp;",
+        rows = self._db.query(f"SELECT timestamp, temperature, humidity, pressure, pm10, pm25, pm40, pm100, co2, voc, nox FROM ScienceHourlyMeanMeasurements WHERE sensor_id = ? ORDER BY timestamp DESC LIMIT 1;",
                               (sensor_id,))
         if len(rows) == 0:
             return None
