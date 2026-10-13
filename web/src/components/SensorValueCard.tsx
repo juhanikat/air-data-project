@@ -86,7 +86,7 @@ export const SensorValueCard = ({
   }
 
   return (
-    <Card.Root width="320px">
+    <Card.Root maxWidth="15%">
       <Card.Body gap="2" bgColor={color}>
         <Stat.Root>
           <Flex direction={'column'}>

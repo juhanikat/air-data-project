@@ -64,7 +64,7 @@ const MainPage = () => {
           <div key={data.sensor.id}>
             <h1>{`${data.sensor.name} (ID: ${data.sensor.id})`}</h1>
             <h2>Last updated: {lastUpdatedString}</h2>
-            <HStack gap="4px" align="start">
+            <HStack gap="4px" align="stretch">
               {data.temperature !== null ? (
                 <SensorValueCard
                   label={'Temperature'}
@@ -72,7 +72,9 @@ const MainPage = () => {
                   value={data.temperature}
                   timestamp={new Date(data.timestamp * 1000)}
                 />
-              ) : <></>}
+              ) : (
+                <></>
+              )}
               {data.humidity !== null ? (
                 <SensorValueCard
                   label={'Humidity'}
@@ -80,7 +82,9 @@ const MainPage = () => {
                   value={data.humidity}
                   timestamp={new Date(data.timestamp * 1000)}
                 />
-              ) : <></>}
+              ) : (
+                <></>
+              )}
               {data.pressure !== null ? (
                 <SensorValueCard
                   label={'Pressure'}
@@ -88,7 +92,9 @@ const MainPage = () => {
                   value={data.pressure}
                   timestamp={new Date(data.timestamp * 1000)}
                 />
-              ) : <></>}
+              ) : (
+                <></>
+              )}
               {data.pm10 !== null ? (
                 <SensorValueCard
                   label={'PM1'}
@@ -96,7 +102,9 @@ const MainPage = () => {
                   value={data.pm10}
                   timestamp={new Date(data.timestamp * 1000)}
                 />
-              ) : <></>}
+              ) : (
+                <></>
+              )}
               {data.pm25 !== null ? (
                 <SensorValueCard
                   label={'PM2.5'}
@@ -104,7 +112,9 @@ const MainPage = () => {
                   value={data.pm25}
                   timestamp={new Date(data.timestamp * 1000)}
                 />
-              ) : <></>}
+              ) : (
+                <></>
+              )}
               {data.pm100 !== null ? (
                 <SensorValueCard
                   label={'PM10'}
@@ -112,7 +122,9 @@ const MainPage = () => {
                   value={data.pm100}
                   timestamp={new Date(data.timestamp * 1000)}
                 />
-              ) : <></>}
+              ) : (
+                <></>
+              )}
               {data.co2 !== null ? (
                 <SensorValueCard
                   label={'CO2'}
@@ -120,7 +132,9 @@ const MainPage = () => {
                   value={data.co2}
                   timestamp={new Date(data.timestamp * 1000)}
                 />
-              ) : <></>}
+              ) : (
+                <></>
+              )}
               {data.voc !== null ? (
                 <SensorValueCard
                   label={'Volatile organic compounds index (VOC)'}
@@ -128,7 +142,9 @@ const MainPage = () => {
                   value={data.voc}
                   timestamp={new Date(data.timestamp * 1000)}
                 />
-              ) : <></>}
+              ) : (
+                <></>
+              )}
               {data.nox !== null ? (
                 <SensorValueCard
                   label={'Nitrogen oxides index (NOx)'}
@@ -136,7 +152,9 @@ const MainPage = () => {
                   value={data.nox}
                   timestamp={new Date(data.timestamp * 1000)}
                 />
-              ) : <></>}
+              ) : (
+                <></>
+              )}
             </HStack>
           </div>
         )
