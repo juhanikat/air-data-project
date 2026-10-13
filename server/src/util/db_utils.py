@@ -115,7 +115,6 @@ class DatabaseConnection:
             method(self)
             self._set_user_version(to_version)
 
-
         self.migrations[from_version] = mig
 
 

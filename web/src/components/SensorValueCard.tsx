@@ -85,9 +85,6 @@ export const SensorValueCard = ({
     }
   }
 
-  // quick fix since missing sensor values seem to be empty objects, instead of null?
-  if (Number.isNaN(Number(value))) return
-
   return (
     <Card.Root width="320px">
       <Card.Body gap="2" bgColor={color}>
