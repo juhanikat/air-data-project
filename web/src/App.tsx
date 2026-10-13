@@ -11,6 +11,7 @@ import api, { User } from './services/api'
 
 const App = () => {
   const [page, setPage] = useState<string>('mainPage')
+  const [prevPage, setPrevPage] = useState<string>()
   const [user, setUser] = useState<User | undefined>(undefined)
 
   // Fetch data directly from icetea.esinko.net
@@ -26,8 +27,22 @@ const App = () => {
 
   return (
     <Container pt={2}>
-      <Header setPage={setPage} user={user} />
-      <Tabs.Root value={page} onValueChange={({ value }) => setPage(value)} lazyMount unmountOnExit>
+      <Header
+        setPage={(value) => {
+          setPrevPage(page)
+          setPage(value)
+        }}
+        user={user}
+      />
+      <Tabs.Root
+        value={page}
+        onValueChange={({ value }) => {
+          setPrevPage(page)
+          setPage(value)
+        }}
+        lazyMount
+        unmountOnExit
+      >
         <Tabs.List>
           <Tabs.Trigger value="mainPage">Home</Tabs.Trigger>
           <Tabs.Trigger value="statisticsPage">Statistics</Tabs.Trigger>
@@ -46,7 +61,7 @@ const App = () => {
           <LoginPage
             setUser={(user) => {
               setUser(user)
-              setPage('mainPage')
+              setPage(prevPage ?? "mainPage")
             }}
           />
         </Tabs.Content>
@@ -54,12 +69,12 @@ const App = () => {
           <AccountPage
             setUser={(user) => {
               setUser(user)
-              setPage('mainPage')
+              setPage(prevPage ?? "mainPage")
             }}
           />
         </Tabs.Content>
         <Tabs.Content value="forecastPage">
-          <ForecastPage user={user}/>
+          <ForecastPage user={user} />
         </Tabs.Content>
       </Tabs.Root>
     </Container>
