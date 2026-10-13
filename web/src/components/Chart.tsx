@@ -240,7 +240,7 @@ const Chart = ({
               }}
             />
           ))}
-
+          {/* commented out until empty objects in sensor-6 data are changed to null
           <Tooltip
             labelFormatter={(value) =>
               typeof value === 'number' ? formatTimestamp(value) : value
@@ -256,7 +256,7 @@ const Chart = ({
 
               return yAxisTickFormatter(+value.toFixed(2))
             }}
-          />
+          /> */}
 
           {/* Measurements */}
           {allSensorIds.map((sensorId, index) => (

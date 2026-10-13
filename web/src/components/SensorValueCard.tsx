@@ -1,43 +1,89 @@
+import { SensorReading } from '@/services/api'
 import { Card, Flex, Stat } from '@chakra-ui/react'
-import { useState } from 'react'
-
-export type Time = {
-  value: number
-  unit: 'second' | 'minute' | 'hour' | 'day'
-}
 
 export const SensorValueCard = ({
-  type,
+  /** The name of the sensor reading. */
   label,
+  /** If given, automatically colors the Card and formats the value. */
+  dataKey,
+  /** The value :D */
   value,
-  timestamp,
+  /** If datakey is not given, this object can be used to format the value and color the Card however you like. */
+  customDisplayOptions,
 }: {
-  type: 'temperature' | 'percentage'
   label: string
+  dataKey?: keyof SensorReading
   value: number
   timestamp: Date
+  customDisplayOptions?: {
+    color: string
+    formattedValue: string
+    valueUnit: string
+  }
 }) => {
-  const timestampToTime = (): Time => {
-    const msSinceReading = currentTime - timestamp.getTime()
-    const secondsSinceReading = msSinceReading / 1000
-    const minutesSinceReading = secondsSinceReading / 60
-    const hoursSinceReading = minutesSinceReading / 60
+  if (!dataKey && !customDisplayOptions) {
+    console.error(
+      'Custom data options must be passed if the dataKey is not given.'
+    )
+  }
 
-    if (secondsSinceReading < 60) {
-      return { value: Math.round(secondsSinceReading), unit: 'second' }
-    } else if (minutesSinceReading < 60) {
-      return { value: Math.round(minutesSinceReading), unit: 'minute' }
-    } else if (hoursSinceReading < 24) {
-      return { value: Math.round(hoursSinceReading), unit: 'hour' }
-    } else {
-      return { value: Math.round(hoursSinceReading / 24), unit: 'day' }
+  let formattedValue = ''
+  let valueUnit = ''
+  let color = ''
+
+  if (customDisplayOptions) {
+    color = customDisplayOptions.color
+    formattedValue = customDisplayOptions.formattedValue
+    valueUnit = customDisplayOptions.valueUnit
+  } else {
+    switch (dataKey) {
+      case 'temperature':
+        color = 'red.100'
+        formattedValue = value.toFixed(1)
+        valueUnit = ' °C'
+        break
+      case 'humidity':
+        color = 'blue.100'
+        formattedValue = value.toFixed(1)
+        valueUnit = ' %'
+        break
+      case 'pressure':
+        color = 'green.100'
+        formattedValue = value.toFixed(0)
+        valueUnit = ' Pa'
+        break
+      case 'pm10':
+        color = 'pink.100'
+        formattedValue = value.toFixed(2)
+        valueUnit = ' ppm'
+        break
+      case 'pm25':
+        color = 'pink.100'
+        formattedValue = value.toFixed(2)
+        valueUnit = ' ppm'
+        break
+      case 'pm100':
+        color = 'pink.100'
+        formattedValue = value.toFixed(2)
+        valueUnit = ' ppm'
+        break
+      case 'co2':
+        color = 'gray.100'
+        formattedValue = value.toFixed(0)
+        valueUnit = ' ppm'
+        break
+      case 'voc':
+        color = 'green.200'
+        formattedValue = value.toFixed(0)
+        valueUnit = ''
+        break
+      case 'nox':
+        color = 'orange.200'
+        formattedValue = value.toFixed(0)
+        valueUnit = ''
+        break
     }
   }
-  const [currentTime] = useState(() => Date.now())
-
-  const time = timestampToTime()
-  const unit = time.value === 1 ? time.unit : time.unit + 's'
-  const color = type === 'temperature' ? 'red.100' : 'blue.100'
 
   // quick fix since missing sensor values seem to be empty objects, instead of null?
   if (Number.isNaN(Number(value))) return
@@ -52,12 +98,7 @@ export const SensorValueCard = ({
             </Flex>
             <Flex>
               <Stat.ValueText>
-                {value.toFixed(2)} {type === 'temperature' ? '°C' : '%'}
-              </Stat.ValueText>
-            </Flex>
-            <Flex justify={'flex-end'}>
-              <Stat.ValueText alignItems={'baseline'}>
-                {time.value} <Stat.ValueUnit>{unit} ago</Stat.ValueUnit>
+                {formattedValue} {valueUnit}
               </Stat.ValueText>
             </Flex>
           </Flex>
