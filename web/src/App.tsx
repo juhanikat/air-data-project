@@ -2,15 +2,16 @@ import { Container, Tabs } from '@chakra-ui/react'
 import { useEffect, useState } from 'react'
 import { Header } from './components/Header'
 import AccountPage from './pages/AccountPage'
+import ForecastPage from './pages/ForecastPage'
+import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
-import MainPage from './pages/MainPage'
+import MeasurementsPage from './pages/MeasurementsPage'
 import SettingsPage from './pages/SettingsPage'
 import StatisticsPage from './pages/StatisticsPage'
-import ForecastPage from "./pages/ForecastPage"
 import api, { User } from './services/api'
 
 const App = () => {
-  const [page, setPage] = useState<string>('mainPage')
+  const [page, setPage] = useState<string>('homePage')
   const [prevPage, setPrevPage] = useState<string>()
   const [user, setUser] = useState<User | undefined>(undefined)
 
@@ -44,12 +45,16 @@ const App = () => {
         unmountOnExit
       >
         <Tabs.List>
-          <Tabs.Trigger value="mainPage">Home</Tabs.Trigger>
+          <Tabs.Trigger value="homePage">Home</Tabs.Trigger>
+          <Tabs.Trigger value="measurementsPage">Measurements</Tabs.Trigger>
           <Tabs.Trigger value="statisticsPage">Statistics</Tabs.Trigger>
           <Tabs.Trigger value="forecastPage">Forecast</Tabs.Trigger>
         </Tabs.List>
-        <Tabs.Content value="mainPage">
-          <MainPage />
+        <Tabs.Content value="homePage">
+          <HomePage />
+        </Tabs.Content>
+        <Tabs.Content value="measurementsPage">
+          <MeasurementsPage />
         </Tabs.Content>
         <Tabs.Content value="statisticsPage">
           <StatisticsPage />
@@ -61,7 +66,7 @@ const App = () => {
           <LoginPage
             setUser={(user) => {
               setUser(user)
-              setPage(prevPage ?? "mainPage")
+              setPage(prevPage ?? 'homePage')
             }}
           />
         </Tabs.Content>
@@ -69,7 +74,7 @@ const App = () => {
           <AccountPage
             setUser={(user) => {
               setUser(user)
-              setPage(prevPage ?? "mainPage")
+              setPage(prevPage ?? 'homePage')
             }}
           />
         </Tabs.Content>

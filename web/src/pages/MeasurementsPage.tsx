@@ -26,7 +26,7 @@ const timestampToTime = (timestamp: number): Time => {
     return { value: Math.round(hoursSinceReading / 24), unit: 'day' }
   }
 }
-const MainPage = () => {
+const MeasurementsPage = () => {
   const [sensorData, setSensorData] = useState<LatestSensorData[]>([])
   const [loadError, setLoadError] = useState<string | undefined>()
 
@@ -163,4 +163,4 @@ const MainPage = () => {
   )
 }
 
-export default MainPage
+export default MeasurementsPage
