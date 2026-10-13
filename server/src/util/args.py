@@ -12,6 +12,7 @@ def get_app_args():
     arg_parser.add_argument("--api-address", type=str, help="Set the frontend server address")
     arg_parser.add_argument("--mqtt-user", type=str, help="Backend MQTT client username", default=None)
     arg_parser.add_argument("--mqtt-password", type=str, help="Backend MQTT client password", default=None)
+    arg_parser.add_argument("--disable-mqtt", action="store_true", help="Disable MQTT features")
 
     args, unknown = arg_parser.parse_known_args()
     if unknown:

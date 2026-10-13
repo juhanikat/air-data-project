@@ -34,11 +34,14 @@ def main():
         context.database.enable_wal()
 
         # MARK: MQTT
-        context.mqtt.register_listeners(context)
-        context.mqtt.listen(address=args.get("mqtt_address") or "127.0.0.1",
-                            port=args.get("mqtt_port") or 1883,
-                            username=args.get("mqtt_user"),
-                            password=args.get("mqtt_password"))
+        if not args.get("disable_mqtt"):
+            context.mqtt.register_listeners(context)
+            context.mqtt.listen(address=args.get("mqtt_address") or "127.0.0.1",
+                                port=args.get("mqtt_port") or 1883,
+                                username=args.get("mqtt_user"),
+                                password=args.get("mqtt_password"))
+        else:
+            print("WARNING: MQTT data input is disabled!")
 
         # MARK: API
         context.api.register_routes(context)

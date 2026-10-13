@@ -9,19 +9,20 @@ from util.db_utils import MeasurementItemSingular
 if TYPE_CHECKING:
     from util.context import Context
 
+MISSING = object()
 
 @dataclass
 class DownSampledValue:
-    min: Optional[float] = None
-    max: Optional[float] = None
-    mean: Optional[float] = None
-    median: Optional[float] = None
+    min: Optional[float] = MISSING
+    max: Optional[float] = MISSING
+    mean: Optional[float] = MISSING
+    median: Optional[float] = MISSING
 
     def to_dict(self):
         return {
-            key: float(getattr(self, key))
+            key: (float(getattr(self, key)) if getattr(self, key) is not None else None)
             for key in ("min", "max", "mean", "median")
-            if getattr(self, key) is not None
+            if getattr(self, key) is not MISSING
         }
 
 
