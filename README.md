@@ -1,4 +1,4 @@
-# air-data-project
+# Guru-Air Monitor
 Data Science course project.
 
 ### Monorepository structure
