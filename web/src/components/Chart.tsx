@@ -71,7 +71,12 @@ const Chart = ({
       points.push(existingPoint)
     }
 
-    const value = reading[dataKey] as number | null | undefined
+    let value = reading[dataKey] as number | null | undefined
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      if ('mean' in value) {
+        value = value.mean as number
+      }
+    }
 
     if (
       forecastStartTimestamp !== undefined &&
@@ -240,7 +245,7 @@ const Chart = ({
               }}
             />
           ))}
-          {/* commented out until empty objects in sensor-6 data are changed to null
+
           <Tooltip
             labelFormatter={(value) =>
               typeof value === 'number' ? formatTimestamp(value) : value
@@ -256,7 +261,7 @@ const Chart = ({
 
               return yAxisTickFormatter(+value.toFixed(2))
             }}
-          /> */}
+          />
 
           {/* Measurements */}
           {allSensorIds.map((sensorId, index) => (
