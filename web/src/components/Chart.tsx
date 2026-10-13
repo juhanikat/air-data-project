@@ -1,3 +1,4 @@
+import { Box, Flex, Heading } from '@chakra-ui/react'
 import {
   CartesianGrid,
   Line,
@@ -10,7 +11,6 @@ import {
 } from 'recharts'
 import { ValueType } from 'recharts/types/component/DefaultTooltipContent'
 import { SensorData, SensorReading } from '../services/api'
-import { Box, Flex, Heading } from '@chakra-ui/react'
 
 const Chart = ({
   title,
@@ -131,11 +131,8 @@ const Chart = ({
       const date = new Date(reading.timestamp * 1000)
 
       const day =
-        Date.UTC(
-          date.getUTCFullYear(),
-          date.getUTCMonth(),
-          date.getUTCDate()
-        ) / 1000
+        Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) /
+        1000
 
       const existing = days.get(day)
 
@@ -244,12 +241,9 @@ const Chart = ({
             />
           ))}
 
-          {/*
           <Tooltip
             labelFormatter={(value) =>
-              typeof value === 'number'
-                ? formatTimestamp(value)
-                : value
+              typeof value === 'number' ? formatTimestamp(value) : value
             }
             formatter={(value: ValueType | undefined) => {
               if (typeof value !== 'number') {
@@ -263,7 +257,6 @@ const Chart = ({
               return yAxisTickFormatter(+value.toFixed(2))
             }}
           />
-          */}
 
           {/* Measurements */}
           {allSensorIds.map((sensorId, index) => (

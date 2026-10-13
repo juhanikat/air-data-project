@@ -12,7 +12,6 @@ const MainPage = () => {
     api
       .getLatest()
       .then((data) => {
-        console.log(data)
         setSensorData(data)
       })
       .catch((err) => {
