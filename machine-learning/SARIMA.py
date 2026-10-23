@@ -52,7 +52,7 @@ class SARIMA:
 
     def __init__(
         self,
-        database_path="./data/main.db",
+        database_path="./machine-learning/main.db",
         sensor_id=1,
         column_name="temperature",
         data_start_date: str | None = None,
@@ -183,7 +183,8 @@ class SARIMA:
         for d in day_starts:
             if d.dayofweek >= 5:  # 5 = Saturday, 6 = Sunday
                 plt.axvspan(d, d + pd.Timedelta(days=1), color="orange", alpha=0.15)
-        plt.title("Hourly mean data")
+        plt.ylabel(self.column_name, fontsize=16)
+        plt.title("Hourly mean data", fontsize=20)
 
     def plot_ACF_and_PACF(self, number_of_lags: int = 36):
         """Calculates, plots and returns the ACF and PACF of the given time series.
@@ -198,11 +199,15 @@ class SARIMA:
         acf_vals = acf(data, nlags=number_of_lags)
         plt.figure()
         plt.bar(range(number_of_lags), acf_vals[:number_of_lags])
+        plt.ylabel("correlation")
+        plt.xlabel("lags")
         plt.title("ACF")
         # Calculate PACF
         pacf_vals = pacf(data, nlags=number_of_lags)
         plt.figure()
         plt.bar(range(number_of_lags), pacf_vals[:number_of_lags])
+        plt.ylabel("correlation")
+        plt.xlabel("lags")
         plt.title("PACF")
 
         return acf_vals, pacf_vals
@@ -211,7 +216,7 @@ class SARIMA:
         self,
         SARIMA_order: tuple,
         SARIMA_seasonal_order: tuple,
-        # train_test_split_date: str,
+        train_test_split_date: str,
     ):
         """Divides the data into training and testing sets, fits a SARIMA model, makes predictions, and plots the results.
 
@@ -225,9 +230,6 @@ class SARIMA:
         data = self.data
 
         # Divide data into training and testing sets
-        train_test_split_date = pd.Timestamp(
-            "2026-10-06", tz=self.__time_zone
-        )  # first day NOT in training
         train_data = data[data.index < train_test_split_date]
         test_data = data[(data.index >= train_test_split_date)]
 
@@ -256,16 +258,20 @@ class SARIMA:
         residuals = test_data - predictions
 
         # Plot Resiuals
-        plt.figure(figsize=(10, 4))
+        plt.figure(figsize=(10, 5))
         plt.plot(residuals)
         plt.axhline(0, linestyle="--", color="k")
         plt.title("Residuals from SARIMA Model", fontsize=20)
         plt.ylabel("Error", fontsize=16)
+        plt.xlabel("mm-dd hh", fontsize=16)
 
         # Plot predictions vs actual data
-        plt.figure(figsize=(10, 4))
-        plt.plot(data[-24:])  # Edit this manually
+        plt.figure(figsize=(12, 6))
+        plt.plot(data[-predictions.size :])
         plt.plot(predictions)
+        plt.title("Data vs Predictions", fontsize=20)
+        plt.ylabel(self.column_name, fontsize=16)
+        plt.xlabel("mm-dd hh", fontsize=16)
         plt.legend(("Data", "Predictions"), fontsize=16)
 
         print(
@@ -273,10 +279,3 @@ class SARIMA:
             round(np.mean(abs(residuals / test_data)), 4),
         )
         print("Root Mean Squared Error:", np.sqrt(np.mean(residuals**2)))
-
-
-l = SARIMA(sensor_id=2, column_name="CO2")
-l.plot_data()
-# l.plot_ACF_and_PACF()
-l.make_SARIMA_predictions((2, 0, 0), (1, 0, 1, 24))
-l.show_plot()
